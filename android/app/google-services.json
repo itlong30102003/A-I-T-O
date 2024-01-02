@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1088527046352",
+    "project_id": "aito-2ed16",
+    "storage_bucket": "aito-2ed16.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1088527046352:android:2f51b40312fed16600f0d5",
+        "android_client_info": {
+          "package_name": "com.aito"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1088527046352-n5h8hhrh1td089llcfe8i2ur5hgh8bhd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aito",
+            "certificate_hash": "dd71a3f27849615109c14e79f21656bf046f3a63"
+          }
+        },
+        {
+          "client_id": "1088527046352-skeg741v3hp9rb9kp8lr5qkhkuacmclc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDngIZZfVh5lmu-d716pTN_exFgmlRS37Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1088527046352-skeg741v3hp9rb9kp8lr5qkhkuacmclc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

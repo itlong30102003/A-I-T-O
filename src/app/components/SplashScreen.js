@@ -5,12 +5,10 @@ import {
     Image,
     TouchableOpacity,
     StyleSheet,
-    Dimensions,
     Animated,
     StatusBar,
 } from "react-native";
 
-const { width, height } = Dimensions.get("window");
 
 // Logo Screen - Simple centered logo
 const LogoScreen = ({ onFinish }) => {
