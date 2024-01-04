@@ -1,0 +1,1451 @@
+﻿Initialized native services in: C:\Users\ADMIN\.gradle\native
+Initialized jansi services in: C:\Users\ADMIN\.gradle\native
+Found daemon DaemonInfo{pid=34576, address=[29e61d33-2ab6-462e-9c33-fd95f3696eef port:51599, addresses:[/127.0.0.1]], state=Idle, lastBusy=1767429163644, context=DefaultDaemonContext[uid=e8247091-a163-4ef6-96b0-263bd6ec3185,javaHome=C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot,javaVersion=17,javaVendor=Microsoft,daemonRegistryDir=C:\Users\ADMIN\.gradle\daemon,pid=34576,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=512m,-Xmx2048m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+At least one daemon option is different.
+Wanted: DaemonRequestContext{jvmCriteria=C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot (no JDK specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=512m, -Xmx2048m, -Dfile.encoding=windows-1252, -Duser.country=US, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=e8247091-a163-4ef6-96b0-263bd6ec3185,javaHome=C:\Program Files\Microsoft\jdk-17.0.17.10-hotspot,javaVersion=17,javaVendor=Microsoft,daemonRegistryDir=C:\Users\ADMIN\.gradle\daemon,pid=34576,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=512m,-Xmx2048m,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 32612). The daemon log file: C:\Users\ADMIN\.gradle\daemon\9.0.0\daemon-32612.out.log
+Starting 21st build in daemon [uptime: 13 mins 16.856 secs, performance: 100%, GC rate: 0.00/s, heap usage: 0% of 2 GiB, non-heap usage: 38% of 512 MiB]
+Using 12 worker leases.
+Now considering [C:\Users\ADMIN\MyProject\A-I-T-O\android, C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native\gradle-plugin] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Now considering [C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native\gradle-plugin, C:\Users\ADMIN\MyProject\A-I-T-O\android] as hierarchies to watch
+Resolved plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '0.5.0']
+
+> Configure project :gradle-plugin
+Evaluating project ':gradle-plugin' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native\gradle-plugin\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '2.1.20', apply: false]
+Resolved plugin [id: 'com.ncorti.ktfmt.gradle', version: '0.22.0']
+
+> Configure project :gradle-plugin:react-native-gradle-plugin
+Evaluating project ':gradle-plugin:react-native-gradle-plugin' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native\gradle-plugin\react-native-gradle-plugin\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '2.1.20']
+Resolved plugin [id: 'com.ncorti.ktfmt.gradle', version: '0.22.0']
+Resolved plugin [id: 'java-gradle-plugin']
+Build f8dfc094-ee4e-4576-86ae-8e0130cf6626 is started
+Using Kotlin Gradle Plugin gradle85 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+
+> Configure project :gradle-plugin:settings-plugin
+Evaluating project ':gradle-plugin:settings-plugin' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native\gradle-plugin\settings-plugin\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '2.1.20']
+Resolved plugin [id: 'com.ncorti.ktfmt.gradle', version: '0.22.0']
+Resolved plugin [id: 'java-gradle-plugin']
+Using Kotlin Gradle Plugin gradle85 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+
+> Configure project :gradle-plugin:shared
+Evaluating project ':gradle-plugin:shared' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native\gradle-plugin\shared\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '2.1.20']
+Resolved plugin [id: 'com.ncorti.ktfmt.gradle', version: '0.22.0']
+Using Kotlin Gradle Plugin gradle85 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+
+> Configure project :gradle-plugin:shared-testutil
+Evaluating project ':gradle-plugin:shared-testutil' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native\gradle-plugin\shared-testutil\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '2.1.20']
+Resolved plugin [id: 'com.ncorti.ktfmt.gradle', version: '0.22.0']
+Using Kotlin Gradle Plugin gradle85 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+Resolved plugin [id: 'com.facebook.react.settings']
+Resolve mutations for :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker,5,main]) started.
+:gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker,5,main]) started.
+:gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :gradle-plugin:shared:compileKotlin (Thread[Execution worker Thread 3,5,main]) started.
+:gradle-plugin:shared:compileKotlin (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+Caching disabled for task ':gradle-plugin:shared:compileKotlin' because:
+  Build cache is disabled
+Skipping task ':gradle-plugin:shared:compileKotlin' as it is up-to-date.
+Resolve mutations for :gradle-plugin:shared:compileJava (Thread[Execution worker Thread 3,5,main]) started.
+:gradle-plugin:shared:compileJava (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+Skipping task ':gradle-plugin:shared:compileJava' as it has no source files and no previous output files.
+Resolve mutations for :gradle-plugin:shared:processResources (Thread[Execution worker Thread 3,5,main]) started.
+:gradle-plugin:shared:processResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+Skipping task ':gradle-plugin:shared:processResources' as it has no source files and no previous output files.
+Resolve mutations for :gradle-plugin:shared:classes (Thread[Execution worker Thread 3,5,main]) started.
+:gradle-plugin:shared:classes (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+Skipping task ':gradle-plugin:shared:classes' as it has no actions.
+Resolve mutations for :gradle-plugin:shared:jar (Thread[Execution worker Thread 8,5,main]) started.
+:gradle-plugin:shared:jar (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :gradle-plugin:shared:jar UP-TO-DATE
+Caching disabled for task ':gradle-plugin:shared:jar' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:shared:jar' as it is up-to-date.
+work action resolve shared.jar (project :gradle-plugin:shared) (Thread[Execution worker Thread 8,5,main]) started.
+Resolve mutations for :gradle-plugin:settings-plugin:compileKotlin (Thread[Execution worker Thread 7,5,main]) started.
+:gradle-plugin:settings-plugin:compileKotlin (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+Caching disabled for task ':gradle-plugin:settings-plugin:compileKotlin' because:
+  Build cache is disabled
+Skipping task ':gradle-plugin:settings-plugin:compileKotlin' as it is up-to-date.
+Resolve mutations for :gradle-plugin:settings-plugin:compileJava (Thread[Execution worker Thread 7,5,main]) started.
+:gradle-plugin:settings-plugin:compileJava (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+Skipping task ':gradle-plugin:settings-plugin:compileJava' as it has no source files and no previous output files.
+Resolve mutations for :gradle-plugin:settings-plugin:pluginDescriptors (Thread[Execution worker Thread 7,5,main]) started.
+:gradle-plugin:settings-plugin:pluginDescriptors (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+Caching disabled for task ':gradle-plugin:settings-plugin:pluginDescriptors' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:settings-plugin:pluginDescriptors' as it is up-to-date.
+Resolve mutations for :gradle-plugin:settings-plugin:processResources (Thread[Execution worker Thread 9,5,main]) started.
+:gradle-plugin:settings-plugin:processResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+Caching disabled for task ':gradle-plugin:settings-plugin:processResources' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:settings-plugin:processResources' as it is up-to-date.
+Resolve mutations for :gradle-plugin:settings-plugin:classes (Thread[Execution worker Thread 9,5,main]) started.
+:gradle-plugin:settings-plugin:classes (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+Skipping task ':gradle-plugin:settings-plugin:classes' as it has no actions.
+Resolve mutations for :gradle-plugin:settings-plugin:jar (Thread[Execution worker Thread 6,5,main]) started.
+:gradle-plugin:settings-plugin:jar (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+Caching disabled for task ':gradle-plugin:settings-plugin:jar' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:settings-plugin:jar' as it is up-to-date.
+Settings evaluated using settings file 'C:\Users\ADMIN\MyProject\A-I-T-O\android\settings.gradle'.
+Projects loaded. Root project using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\android\build.gradle'.
+Included projects: [root project 'AITO', project ':app', project ':react-native-fbsdk-next', project ':react-native-firebase_app', project ':react-native-firebase_auth', project ':react-native-firebase_firestore', project ':react-native-google-signin_google-signin', project ':react-native-safe-area-context']
+Registering project ':gradle-plugin' in composite build. Will substitute for module ':gradle-plugin-root'.
+Registering project ':gradle-plugin:react-native-gradle-plugin' in composite build. Will substitute for module 'com.facebook.react:react-native-gradle-plugin'.
+Registering project ':gradle-plugin:settings-plugin' in composite build. Will substitute for module 'com.facebook.react:settings-plugin'.
+Registering project ':gradle-plugin:shared' in composite build. Will substitute for module 'com.facebook.react:shared'.
+Registering project ':gradle-plugin:shared-testutil' in composite build. Will substitute for module 'com.facebook.react:shared-testutil'.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 2,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:compileKotlin (Thread[Execution worker Thread 2,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:compileKotlin (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+Caching disabled for task ':gradle-plugin:react-native-gradle-plugin:compileKotlin' because:
+  Build cache is disabled
+Skipping task ':gradle-plugin:react-native-gradle-plugin:compileKotlin' as it is up-to-date.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:compileJava (Thread[Execution worker Thread 2,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:compileJava (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+Skipping task ':gradle-plugin:react-native-gradle-plugin:compileJava' as it has no source files and no previous output files.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:pluginDescriptors (Thread[Execution worker Thread 2,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:pluginDescriptors (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+Caching disabled for task ':gradle-plugin:react-native-gradle-plugin:pluginDescriptors' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:react-native-gradle-plugin:pluginDescriptors' as it is up-to-date.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:processResources (Thread[Execution worker Thread 2,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:processResources (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+Caching disabled for task ':gradle-plugin:react-native-gradle-plugin:processResources' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:react-native-gradle-plugin:processResources' as it is up-to-date.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:classes (Thread[Execution worker Thread 2,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:classes (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+Skipping task ':gradle-plugin:react-native-gradle-plugin:classes' as it has no actions.
+Resolve mutations for :gradle-plugin:react-native-gradle-plugin:jar (Thread[Execution worker Thread 2,5,main]) started.
+:gradle-plugin:react-native-gradle-plugin:jar (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+Caching disabled for task ':gradle-plugin:react-native-gradle-plugin:jar' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':gradle-plugin:react-native-gradle-plugin:jar' as it is up-to-date.
+
+> Configure project :app
+Evaluating project ':app' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build.gradle'.
+Using default execution profile
+Build da6ef23c-19f7-4525-8efe-57263b16b0c9 is started
+Using Kotlin Gradle Plugin gradle85 variant
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+C/C++: android.ndkVersion from module build.gradle is [27.1.12297006]
+C/C++: android.ndkPath from module build.gradle is not set
+C/C++: ndk.dir in local.properties is not set
+C/C++: Not considering ANDROID_NDK_HOME because support was removed after deprecation period.
+C/C++: sdkFolder is C:\Android\Sdk
+
+> Configure project :
+Evaluating root project 'AITO' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\android\build.gradle'.
+Found project 'project :gradle-plugin:react-native-gradle-plugin' as substitute for module 'com.facebook.react:react-native-gradle-plugin'.
+Ignoring listeners of task graph ready event, as this build (:gradle-plugin) has already executed work.
+
+> Configure project :react-native-fbsdk-next
+Evaluating project ':react-native-fbsdk-next' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\react-native-fbsdk-next\android\build.gradle'.
+Using default execution profile
+
+> Configure project :react-native-firebase_app
+Evaluating project ':react-native-firebase_app' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\app\android\build.gradle'.
+Resolved plugin [id: 'io.invertase.gradle.build', version: '1.5']
+Using default execution profile
+:react-native-firebase_app package.json found at C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\app\package.json
+:react-native-firebase_app no firebase.json found, skipping
+:react-native-firebase_app:firebase.bom using default value: 34.6.0
+:react-native-firebase_app:play.play-services-auth using default value: 21.4.0
+:react-native-firebase_app package.json found at C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\app\package.json
+:react-native-firebase_app:version set from package.json: 23.7.0 (23,7,0 - 23007000)
+:react-native-firebase_app:android.compileSdk using custom value: 36
+:react-native-firebase_app:android.targetSdk using custom value: 36
+:react-native-firebase_app:android.minSdk using custom value: 24
+:react-native-firebase_app:reactNativeAndroidDir C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\react-native
+
+> Configure project :react-native-firebase_auth
+Evaluating project ':react-native-firebase_auth' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\auth\android\build.gradle'.
+Resolved plugin [id: 'io.invertase.gradle.build', version: '1.5']
+Using default execution profile
+:react-native-firebase_auth package.json found at C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\auth\package.json
+:react-native-firebase_app package.json found at C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\app\package.json
+:react-native-firebase_auth:firebase.bom using default value: 34.6.0
+:react-native-firebase_auth package.json found at C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\auth\package.json
+:react-native-firebase_auth:version set from package.json: 23.7.0 (23,7,0 - 23007000)
+:react-native-firebase_auth:android.compileSdk using custom value: 36
+:react-native-firebase_auth:android.targetSdk using custom value: 36
+:react-native-firebase_auth:android.minSdk using custom value: 24
+:react-native-firebase_auth:reactNativeAndroidDir C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\react-native
+
+> Configure project :react-native-firebase_firestore
+Evaluating project ':react-native-firebase_firestore' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\firestore\android\build.gradle'.
+Resolved plugin [id: 'io.invertase.gradle.build', version: '1.5']
+Using default execution profile
+:react-native-firebase_firestore package.json found at C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\firestore\package.json
+:react-native-firebase_app package.json found at C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\app\package.json
+:react-native-firebase_firestore:firebase.bom using default value: 34.6.0
+:react-native-firebase_firestore package.json found at C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-firebase\firestore\package.json
+:react-native-firebase_firestore:version set from package.json: 23.7.0 (23,7,0 - 23007000)
+:react-native-firebase_firestore:android.compileSdk using custom value: 36
+:react-native-firebase_firestore:android.targetSdk using custom value: 36
+:react-native-firebase_firestore:android.minSdk using custom value: 24
+:react-native-firebase_firestore:reactNativeAndroidDir C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\react-native
+
+> Configure project :react-native-google-signin_google-signin
+Evaluating project ':react-native-google-signin_google-signin' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native-google-signin\google-signin\android\build.gradle'.
+Using default execution profile
+Using Kotlin Gradle Plugin gradle85 variant
+
+> Configure project :react-native-safe-area-context
+Evaluating project ':react-native-safe-area-context' using build file 'C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\react-native-safe-area-context\android\build.gradle'.
+Using default execution profile
+Using Kotlin Gradle Plugin gradle85 variant
+All projects evaluated.
+Task path ':app:compileDebugKotlin' matched project ':app'
+Task name matched 'compileDebugKotlin'
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugKotlin
+Selected primary task 'compileDebugKotlin' from project :app
+Registered task dependencies: app:kotlinCompilerPluginClasspathDebug
+Starting dependency analysis
+Registered task dependencies: app:debugCompileClasspath
+Skipping misunderstood TO dep string: project :react-native-firebase_app
+Skipping misunderstood TO dep string: project :react-native-firebase_auth
+Skipping misunderstood TO dep string: project :react-native-firebase_app
+Skipping misunderstood TO dep string: project :react-native-firebase_firestore
+Skipping misunderstood TO dep string: project :react-native-firebase_app
+Skipping misunderstood TO dep string: project :react-native-google-signin_google-signin
+Skipping misunderstood TO dep string: project :react-native-fbsdk-next
+Skipping misunderstood TO dep string: project :react-native-safe-area-context
+Skipping misunderstood TO dep string: com.facebook.react:react-android
+Skipping misunderstood TO dep string: com.google.firebase:firebase-analytics
+Skipping misunderstood TO dep string: com.google.firebase:firebase-auth
+Skipping misunderstood TO dep string: com.facebook.react:hermes-android
+Starting dependency analysis
+Registered task dependencies: app:kotlinCompilerClasspath
+Starting dependency analysis
+Tasks to be executed: [task ':app:checkKotlinGradlePluginConfigurationErrors', task ':app:generateAutolinkingNewArchitectureFiles', task ':app:generateAutolinkingPackageList', task ':app:generateCodegenSchemaFromJavaScript', task ':app:generateCodegenArtifactsFromSchema', task ':app:generateReactNativeEntryPoint', task ':react-native-fbsdk-next:preBuild', task ':react-native-firebase_app:preBuild', task ':react-native-firebase_auth:preBuild', task ':react-native-firebase_firestore:preBuild', task ':react-native-google-signin_google-signin:generateCodegenSchemaFromJavaScript', task ':react-native-google-signin_google-signin:generateCodegenArtifactsFromSchema', task ':react-native-google-signin_google-signin:preBuild', task ':react-native-safe-area-context:generateCodegenSchemaFromJavaScript', task ':react-native-safe-area-context:generateCodegenArtifactsFromSchema', task ':react-native-safe-area-context:preBuild', task ':app:preBuild', task ':app:preDebugBuild', task ':app:generateDebugBuildConfig', task ':react-native-fbsdk-next:preDebugBuild', task ':react-native-fbsdk-next:writeDebugAarMetadata', task ':react-native-firebase_app:preDebugBuild', task ':react-native-firebase_app:writeDebugAarMetadata', task ':react-native-firebase_auth:preDebugBuild', task ':react-native-firebase_auth:writeDebugAarMetadata', task ':react-native-firebase_firestore:preDebugBuild', task ':react-native-firebase_firestore:writeDebugAarMetadata', task ':react-native-google-signin_google-signin:preDebugBuild', task ':react-native-google-signin_google-signin:writeDebugAarMetadata', task ':react-native-safe-area-context:preDebugBuild', task ':react-native-safe-area-context:writeDebugAarMetadata', task ':app:checkDebugAarMetadata', task ':app:generateDebugResValues', task ':app:processDebugGoogleServices', task ':react-native-fbsdk-next:generateDebugResValues', task ':react-native-fbsdk-next:generateDebugResources', task ':react-native-fbsdk-next:packageDebugResources', task ':react-native-firebase_app:generateDebugResValues', task ':react-native-firebase_app:generateDebugResources', task ':react-native-firebase_app:packageDebugResources', task ':react-native-firebase_auth:generateDebugResValues', task ':react-native-firebase_auth:generateDebugResources', task ':react-native-firebase_auth:packageDebugResources', task ':react-native-firebase_firestore:generateDebugResValues', task ':react-native-firebase_firestore:generateDebugResources', task ':react-native-firebase_firestore:packageDebugResources', task ':react-native-google-signin_google-signin:generateDebugResValues', task ':react-native-google-signin_google-signin:generateDebugResources', task ':react-native-google-signin_google-signin:packageDebugResources', task ':react-native-safe-area-context:generateDebugResValues', task ':react-native-safe-area-context:generateDebugResources', task ':react-native-safe-area-context:packageDebugResources', task ':app:mapDebugSourceSetPaths', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:parseDebugLocalResources', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':react-native-fbsdk-next:extractDeepLinksDebug', task ':react-native-fbsdk-next:processDebugManifest', task ':react-native-firebase_app:extractDeepLinksDebug', task ':react-native-firebase_app:processDebugManifest', task ':react-native-firebase_auth:extractDeepLinksDebug', task ':react-native-firebase_auth:processDebugManifest', task ':react-native-firebase_firestore:extractDeepLinksDebug', task ':react-native-firebase_firestore:processDebugManifest', task ':react-native-google-signin_google-signin:extractDeepLinksDebug', task ':react-native-google-signin_google-signin:processDebugManifest', task ':react-native-safe-area-context:extractDeepLinksDebug', task ':react-native-safe-area-context:processDebugManifest', task ':app:processDebugMainManifest', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':react-native-fbsdk-next:compileDebugLibraryResources', task ':react-native-fbsdk-next:parseDebugLocalResources', task ':react-native-fbsdk-next:generateDebugRFile', task ':react-native-firebase_app:compileDebugLibraryResources', task ':react-native-firebase_app:parseDebugLocalResources', task ':react-native-firebase_app:generateDebugRFile', task ':react-native-firebase_auth:compileDebugLibraryResources', task ':react-native-firebase_auth:parseDebugLocalResources', task ':react-native-firebase_auth:generateDebugRFile', task ':react-native-firebase_firestore:compileDebugLibraryResources', task ':react-native-firebase_firestore:parseDebugLocalResources', task ':react-native-firebase_firestore:generateDebugRFile', task ':react-native-google-signin_google-signin:compileDebugLibraryResources', task ':react-native-google-signin_google-signin:parseDebugLocalResources', task ':react-native-google-signin_google-signin:generateDebugRFile', task ':react-native-safe-area-context:compileDebugLibraryResources', task ':react-native-safe-area-context:parseDebugLocalResources', task ':react-native-safe-area-context:generateDebugRFile', task ':app:processDebugResources', task ':react-native-fbsdk-next:generateDebugBuildConfig', task ':react-native-fbsdk-next:javaPreCompileDebug', task ':react-native-fbsdk-next:compileDebugJavaWithJavac', task ':react-native-fbsdk-next:bundleLibCompileToJarDebug', task ':react-native-firebase_app:generateDebugBuildConfig', task ':react-native-firebase_app:javaPreCompileDebug', task ':react-native-firebase_app:compileDebugJavaWithJavac', task ':react-native-firebase_app:bundleLibCompileToJarDebug', task ':react-native-firebase_auth:generateDebugBuildConfig', task ':react-native-firebase_auth:javaPreCompileDebug', task ':react-native-firebase_auth:compileDebugJavaWithJavac', task ':react-native-firebase_auth:bundleLibCompileToJarDebug', task ':react-native-firebase_firestore:generateDebugBuildConfig', task ':react-native-firebase_firestore:javaPreCompileDebug', task ':react-native-firebase_firestore:compileDebugJavaWithJavac', task ':react-native-firebase_firestore:bundleLibCompileToJarDebug', task ':react-native-google-signin_google-signin:checkKotlinGradlePluginConfigurationErrors', task ':react-native-google-signin_google-signin:generateDebugBuildConfig', task ':react-native-google-signin_google-signin:compileDebugKotlin', task ':react-native-google-signin_google-signin:javaPreCompileDebug', task ':react-native-google-signin_google-signin:compileDebugJavaWithJavac', task ':react-native-google-signin_google-signin:bundleLibCompileToJarDebug', task ':react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors', task ':react-native-safe-area-context:generateDebugBuildConfig', task ':react-native-safe-area-context:compileDebugKotlin', task ':react-native-safe-area-context:javaPreCompileDebug', task ':react-native-safe-area-context:compileDebugJavaWithJavac', task ':react-native-safe-area-context:bundleLibCompileToJarDebug', task ':app:compileDebugKotlin']
+Tasks that were excluded: []
+Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 4,5,main]) started.
+:app:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':app:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :app:generateAutolinkingNewArchitectureFiles (Thread[Execution worker Thread 4,5,main]) started.
+:app:generateAutolinkingNewArchitectureFiles (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:generateAutolinkingNewArchitectureFiles UP-TO-DATE
+Caching disabled for task ':app:generateAutolinkingNewArchitectureFiles' because:
+  Build cache is disabled
+  Caching has not been enabled for the task
+Skipping task ':app:generateAutolinkingNewArchitectureFiles' as it is up-to-date.
+Resolve mutations for :app:generateAutolinkingPackageList (Thread[Execution worker Thread 4,5,main]) started.
+:app:generateAutolinkingPackageList (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:generateAutolinkingPackageList UP-TO-DATE
+Caching disabled for task ':app:generateAutolinkingPackageList' because:
+  Build cache is disabled
+  Caching has not been enabled for the task
+Skipping task ':app:generateAutolinkingPackageList' as it is up-to-date.
+Resolve mutations for :app:generateCodegenSchemaFromJavaScript (Thread[Execution worker Thread 4,5,main]) started.
+:app:generateCodegenSchemaFromJavaScript (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+Skipping task ':app:generateCodegenSchemaFromJavaScript' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :app:generateCodegenArtifactsFromSchema (Thread[Execution worker Thread 4,5,main]) started.
+:app:generateCodegenArtifactsFromSchema (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:generateCodegenArtifactsFromSchema SKIPPED
+Skipping task ':app:generateCodegenArtifactsFromSchema' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :app:generateReactNativeEntryPoint (Thread[Execution worker Thread 8,5,main]) started.
+:app:generateReactNativeEntryPoint (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:generateReactNativeEntryPoint UP-TO-DATE
+Caching disabled for task ':app:generateReactNativeEntryPoint' because:
+  Build cache is disabled
+  Caching has not been enabled for the task
+Skipping task ':app:generateReactNativeEntryPoint' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:preBuild (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-fbsdk-next:preBuild (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-fbsdk-next:preBuild UP-TO-DATE
+Skipping task ':react-native-fbsdk-next:preBuild' as it has no actions.
+Resolve mutations for :react-native-firebase_app:preBuild (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-firebase_app:preBuild (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-firebase_app:preBuild UP-TO-DATE
+Skipping task ':react-native-firebase_app:preBuild' as it has no actions.
+Resolve mutations for :react-native-firebase_auth:preBuild (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-firebase_auth:preBuild (Thread[Execution worker,5,main]) started.
+
+> Task :react-native-firebase_auth:preBuild UP-TO-DATE
+Skipping task ':react-native-firebase_auth:preBuild' as it has no actions.
+Resolve mutations for :react-native-firebase_firestore:preBuild (Thread[Execution worker,5,main]) started.
+:react-native-firebase_firestore:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-firebase_firestore:preBuild UP-TO-DATE
+Skipping task ':react-native-firebase_firestore:preBuild' as it has no actions.
+Resolve mutations for :react-native-google-signin_google-signin:generateCodegenSchemaFromJavaScript (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-google-signin_google-signin:generateCodegenSchemaFromJavaScript (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:generateCodegenSchemaFromJavaScript UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:generateCodegenSchemaFromJavaScript' because:
+  Build cache is disabled
+  Caching has not been enabled for the task
+Skipping task ':react-native-google-signin_google-signin:generateCodegenSchemaFromJavaScript' as it is up-to-date.
+Resolve mutations for :react-native-google-signin_google-signin:generateCodegenArtifactsFromSchema (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-google-signin_google-signin:generateCodegenArtifactsFromSchema (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:generateCodegenArtifactsFromSchema UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:generateCodegenArtifactsFromSchema' because:
+  Build cache is disabled
+  Caching has not been enabled for the task
+Skipping task ':react-native-google-signin_google-signin:generateCodegenArtifactsFromSchema' as it is up-to-date.
+Resolve mutations for :react-native-google-signin_google-signin:preBuild (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-google-signin_google-signin:preBuild (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:preBuild UP-TO-DATE
+Skipping task ':react-native-google-signin_google-signin:preBuild' as it has no actions.
+Resolve mutations for :react-native-safe-area-context:generateCodegenSchemaFromJavaScript (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-safe-area-context:generateCodegenSchemaFromJavaScript (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-safe-area-context:generateCodegenSchemaFromJavaScript UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:generateCodegenSchemaFromJavaScript' because:
+  Build cache is disabled
+  Caching has not been enabled for the task
+Skipping task ':react-native-safe-area-context:generateCodegenSchemaFromJavaScript' as it is up-to-date.
+Resolve mutations for :react-native-safe-area-context:generateCodegenArtifactsFromSchema (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-safe-area-context:generateCodegenArtifactsFromSchema (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-safe-area-context:generateCodegenArtifactsFromSchema UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:generateCodegenArtifactsFromSchema' because:
+  Build cache is disabled
+  Caching has not been enabled for the task
+Skipping task ':react-native-safe-area-context:generateCodegenArtifactsFromSchema' as it is up-to-date.
+Resolve mutations for :react-native-safe-area-context:preBuild (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-safe-area-context:preBuild (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :react-native-safe-area-context:preBuild UP-TO-DATE
+Skipping task ':react-native-safe-area-context:preBuild' as it has no actions.
+Resolve mutations for :app:preBuild (Thread[Execution worker Thread 5,5,main]) started.
+:app:preBuild (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:preBuild UP-TO-DATE
+Skipping task ':app:preBuild' as it has no actions.
+Resolve mutations for :app:preDebugBuild (Thread[Execution worker Thread 4,5,main]) started.
+:app:preDebugBuild (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:preDebugBuild UP-TO-DATE
+Skipping task ':app:preDebugBuild' as it has no actions.
+Resolve mutations for :app:generateDebugBuildConfig (Thread[Execution worker Thread 8,5,main]) started.
+:app:generateDebugBuildConfig (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+Caching disabled for task ':app:generateDebugBuildConfig' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugBuildConfig' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:preDebugBuild (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-fbsdk-next:preDebugBuild (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :react-native-fbsdk-next:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-fbsdk-next:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-fbsdk-next:writeDebugAarMetadata (Thread[Execution worker Thread 4,5,main]) started.
+:react-native-fbsdk-next:writeDebugAarMetadata (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :react-native-fbsdk-next:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-fbsdk-next:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-fbsdk-next) (Thread[Execution worker Thread 4,5,main]) started.
+Resolve mutations for :react-native-firebase_app:preDebugBuild (Thread[Execution worker Thread 4,5,main]) started.
+:react-native-firebase_app:preDebugBuild (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :react-native-firebase_app:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-firebase_app:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-firebase_app:writeDebugAarMetadata (Thread[Execution worker Thread 10,5,main]) started.
+:react-native-firebase_app:writeDebugAarMetadata (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :react-native-firebase_app:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-firebase_app:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-firebase_app) (Thread[Execution worker Thread 10,5,main]) started.
+Resolve mutations for :react-native-firebase_auth:preDebugBuild (Thread[Execution worker Thread 10,5,main]) started.
+:react-native-firebase_auth:preDebugBuild (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :react-native-firebase_auth:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-firebase_auth:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-firebase_auth:writeDebugAarMetadata (Thread[Execution worker Thread 5,5,main]) started.
+:react-native-firebase_auth:writeDebugAarMetadata (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :react-native-firebase_auth:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-firebase_auth:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-firebase_auth) (Thread[Execution worker Thread 4,5,main]) started.
+Resolve mutations for :react-native-firebase_firestore:preDebugBuild (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-firebase_firestore:preDebugBuild (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-firebase_firestore:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-firebase_firestore:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-firebase_firestore:writeDebugAarMetadata (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-firebase_firestore:writeDebugAarMetadata (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-firebase_firestore:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-firebase_firestore:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-firebase_firestore) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :react-native-google-signin_google-signin:preDebugBuild (Thread[Execution worker Thread 5,5,main]) started.
+:react-native-google-signin_google-signin:preDebugBuild (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-google-signin_google-signin:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-google-signin_google-signin:writeDebugAarMetadata (Thread[Execution worker Thread 2,5,main]) started.
+:react-native-google-signin_google-signin:writeDebugAarMetadata (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-google-signin_google-signin:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-google-signin_google-signin) (Thread[Execution worker Thread 4,5,main]) started.
+Resolve mutations for :react-native-safe-area-context:preDebugBuild (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-safe-area-context:preDebugBuild (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :react-native-safe-area-context:preDebugBuild UP-TO-DATE
+Skipping task ':react-native-safe-area-context:preDebugBuild' as it has no actions.
+Resolve mutations for :react-native-safe-area-context:writeDebugAarMetadata (Thread[Execution worker Thread 5,5,main]) started.
+:react-native-safe-area-context:writeDebugAarMetadata (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :react-native-safe-area-context:writeDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:writeDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':react-native-safe-area-context:writeDebugAarMetadata' as it is up-to-date.
+work action resolve aar-metadata.properties (project :react-native-safe-area-context) (Thread[Execution worker Thread 5,5,main]) started.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[Execution worker Thread 5,5,main]) started.
+:app:checkDebugAarMetadata (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+Caching disabled for task ':app:checkDebugAarMetadata' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:checkDebugAarMetadata' as it is up-to-date.
+Resolve mutations for :app:generateDebugResValues (Thread[Execution worker Thread 8,5,main]) started.
+:app:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':app:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :app:processDebugGoogleServices (Thread[Execution worker Thread 9,5,main]) started.
+:app:processDebugGoogleServices (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:processDebugGoogleServices UP-TO-DATE
+Caching disabled for task ':app:processDebugGoogleServices' because:
+  Build cache is disabled
+Skipping task ':app:processDebugGoogleServices' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-fbsdk-next:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-fbsdk-next:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-fbsdk-next:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-fbsdk-next:generateDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:generateDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:generateDebugResources' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-fbsdk-next:packageDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-fbsdk-next:packageDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:packageDebugResources' as it is up-to-date.
+work action resolve packageDebugResources (project :react-native-fbsdk-next) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :react-native-firebase_app:generateDebugResValues (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-firebase_app:generateDebugResValues (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-firebase_app:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :react-native-firebase_app:generateDebugResources (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-firebase_app:generateDebugResources (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-firebase_app:generateDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:generateDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:generateDebugResources' as it is up-to-date.
+Resolve mutations for :react-native-firebase_app:packageDebugResources (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-firebase_app:packageDebugResources (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-firebase_app:packageDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:packageDebugResources' as it is up-to-date.
+work action resolve packageDebugResources (project :react-native-firebase_app) (Thread[Execution worker Thread 8,5,main]) started.
+Resolve mutations for :react-native-firebase_auth:generateDebugResValues (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-firebase_auth:generateDebugResValues (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-firebase_auth:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :react-native-firebase_auth:generateDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-firebase_auth:generateDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-firebase_auth:generateDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:generateDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:generateDebugResources' as it is up-to-date.
+Resolve mutations for :react-native-firebase_auth:packageDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-firebase_auth:packageDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-firebase_auth:packageDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:packageDebugResources' as it is up-to-date.
+work action resolve packageDebugResources (project :react-native-firebase_auth) (Thread[Execution worker Thread 7,5,main]) started.
+Resolve mutations for :react-native-firebase_firestore:generateDebugResValues (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-firebase_firestore:generateDebugResValues (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-firebase_firestore:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :react-native-firebase_firestore:generateDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-firebase_firestore:generateDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-firebase_firestore:generateDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:generateDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:generateDebugResources' as it is up-to-date.
+Resolve mutations for :react-native-firebase_firestore:packageDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-firebase_firestore:packageDebugResources (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-firebase_firestore:packageDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:packageDebugResources' as it is up-to-date.
+work action resolve packageDebugResources (project :react-native-firebase_firestore) (Thread[Execution worker Thread 7,5,main]) started.
+Resolve mutations for :react-native-google-signin_google-signin:generateDebugResValues (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-google-signin_google-signin:generateDebugResValues (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :react-native-google-signin_google-signin:generateDebugResources (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-google-signin_google-signin:generateDebugResources (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:generateDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:generateDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:generateDebugResources' as it is up-to-date.
+Resolve mutations for :react-native-google-signin_google-signin:packageDebugResources (Thread[Execution worker Thread 10,5,main]) started.
+:react-native-google-signin_google-signin:packageDebugResources (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:packageDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:packageDebugResources' as it is up-to-date.
+work action resolve packageDebugResources (project :react-native-google-signin_google-signin) (Thread[Execution worker Thread 10,5,main]) started.
+Resolve mutations for :react-native-safe-area-context:generateDebugResValues (Thread[Execution worker Thread 10,5,main]) started.
+:react-native-safe-area-context:generateDebugResValues (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :react-native-safe-area-context:generateDebugResValues UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:generateDebugResValues' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:generateDebugResValues' as it is up-to-date.
+Resolve mutations for :react-native-safe-area-context:generateDebugResources (Thread[Execution worker Thread 10,5,main]) started.
+:react-native-safe-area-context:generateDebugResources (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :react-native-safe-area-context:generateDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:generateDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:generateDebugResources' as it is up-to-date.
+Resolve mutations for :react-native-safe-area-context:packageDebugResources (Thread[Execution worker Thread 10,5,main]) started.
+:react-native-safe-area-context:packageDebugResources (Thread[Execution worker Thread 10,5,main]) started.
+
+> Task :react-native-safe-area-context:packageDebugResources UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:packageDebugResources' as it is up-to-date.
+work action resolve packageDebugResources (project :react-native-safe-area-context) (Thread[Execution worker Thread 10,5,main]) started.
+Resolve mutations for :app:mapDebugSourceSetPaths (Thread[Execution worker Thread 10,5,main]) started.
+:app:mapDebugSourceSetPaths (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+Caching disabled for task ':app:mapDebugSourceSetPaths' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:mapDebugSourceSetPaths' as it is up-to-date.
+Resolve mutations for :app:generateDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+:app:generateDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:generateDebugResources UP-TO-DATE
+Caching disabled for task ':app:generateDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:generateDebugResources' as it is up-to-date.
+Resolve mutations for :app:mergeDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+:app:mergeDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:mergeDebugResources UP-TO-DATE
+Caching disabled for task ':app:mergeDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:mergeDebugResources' as it is up-to-date.
+Resolve mutations for :app:packageDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+:app:packageDebugResources (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:packageDebugResources UP-TO-DATE
+Caching disabled for task ':app:packageDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:packageDebugResources' as it is up-to-date.
+Resolve mutations for :app:parseDebugLocalResources (Thread[Execution worker Thread 2,5,main]) started.
+:app:parseDebugLocalResources (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:parseDebugLocalResources UP-TO-DATE
+Caching disabled for task ':app:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':app:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :app:createDebugCompatibleScreenManifests (Thread[Execution worker Thread 2,5,main]) started.
+:app:createDebugCompatibleScreenManifests (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+Caching disabled for task ':app:createDebugCompatibleScreenManifests' because:
+  Build cache is disabled
+  Caching has been disabled for the task
+Skipping task ':app:createDebugCompatibleScreenManifests' as it is up-to-date.
+Resolve mutations for :app:extractDeepLinksDebug (Thread[Execution worker Thread 11,5,main]) started.
+:app:extractDeepLinksDebug (Thread[Execution worker,5,main]) started.
+
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':app:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':app:extractDeepLinksDebug' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:extractDeepLinksDebug (Thread[Execution worker,5,main]) started.
+:react-native-fbsdk-next:extractDeepLinksDebug (Thread[Execution worker,5,main]) started.
+
+> Task :react-native-fbsdk-next:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :react-native-fbsdk-next) (Thread[Execution worker,5,main]) started.
+Resolve mutations for :react-native-fbsdk-next:processDebugManifest (Thread[Execution worker,5,main]) started.
+:react-native-fbsdk-next:processDebugManifest (Thread[Execution worker,5,main]) started.
+
+> Task :react-native-fbsdk-next:processDebugManifest UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :react-native-fbsdk-next) (Thread[Execution worker,5,main]) started.
+Resolve mutations for :react-native-firebase_app:extractDeepLinksDebug (Thread[Execution worker Thread 4,5,main]) started.
+:react-native-firebase_app:extractDeepLinksDebug (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :react-native-firebase_app:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :react-native-firebase_app) (Thread[Execution worker Thread 4,5,main]) started.
+Resolve mutations for :react-native-firebase_app:processDebugManifest (Thread[Execution worker Thread 4,5,main]) started.
+:react-native-firebase_app:processDebugManifest (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :react-native-firebase_app:processDebugManifest UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :react-native-firebase_app) (Thread[Execution worker Thread 4,5,main]) started.
+Resolve mutations for :react-native-firebase_auth:extractDeepLinksDebug (Thread[Execution worker Thread 11,5,main]) started.
+:react-native-firebase_auth:extractDeepLinksDebug (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :react-native-firebase_auth:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :react-native-firebase_auth) (Thread[Execution worker Thread 11,5,main]) started.
+Resolve mutations for :react-native-firebase_auth:processDebugManifest (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-firebase_auth:processDebugManifest (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-firebase_auth:processDebugManifest UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :react-native-firebase_auth) (Thread[Execution worker Thread 8,5,main]) started.
+Resolve mutations for :react-native-firebase_firestore:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_firestore:extractDeepLinksDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_firestore:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :react-native-firebase_firestore) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :react-native-firebase_firestore:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_firestore:processDebugManifest (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_firestore:processDebugManifest UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :react-native-firebase_firestore) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :react-native-google-signin_google-signin:extractDeepLinksDebug (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-google-signin_google-signin:extractDeepLinksDebug (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :react-native-google-signin_google-signin) (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :react-native-google-signin_google-signin:processDebugManifest (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-google-signin_google-signin:processDebugManifest (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:processDebugManifest UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :react-native-google-signin_google-signin) (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :react-native-safe-area-context:extractDeepLinksDebug (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-safe-area-context:extractDeepLinksDebug (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-safe-area-context:extractDeepLinksDebug UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:extractDeepLinksDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:extractDeepLinksDebug' as it is up-to-date.
+work action resolve navigation.json (project :react-native-safe-area-context) (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :react-native-safe-area-context:processDebugManifest (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-safe-area-context:processDebugManifest (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-safe-area-context:processDebugManifest UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:processDebugManifest' as it is up-to-date.
+work action resolve AndroidManifest.xml (project :react-native-safe-area-context) (Thread[Execution worker Thread 7,5,main]) started.
+Resolve mutations for :app:processDebugMainManifest (Thread[Execution worker Thread 9,5,main]) started.
+:app:processDebugMainManifest (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:processDebugMainManifest UP-TO-DATE
+Caching disabled for task ':app:processDebugMainManifest' because:
+  Build cache is disabled
+Skipping task ':app:processDebugMainManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifest (Thread[Execution worker Thread 9,5,main]) started.
+:app:processDebugManifest (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :app:processDebugManifest UP-TO-DATE
+Caching disabled for task ':app:processDebugManifest' because:
+  Build cache is disabled
+Skipping task ':app:processDebugManifest' as it is up-to-date.
+Resolve mutations for :app:processDebugManifestForPackage (Thread[Execution worker Thread 9,5,main]) started.
+:app:processDebugManifestForPackage (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+Custom actions are attached to task ':app:processDebugManifestForPackage'.
+Caching disabled for task ':app:processDebugManifestForPackage' because:
+  Build cache is disabled
+Skipping task ':app:processDebugManifestForPackage' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:compileDebugLibraryResources (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-fbsdk-next:compileDebugLibraryResources (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-fbsdk-next:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :react-native-fbsdk-next) (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :react-native-fbsdk-next:parseDebugLocalResources (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-fbsdk-next:parseDebugLocalResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-fbsdk-next:parseDebugLocalResources UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:generateDebugRFile (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-fbsdk-next:generateDebugRFile (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-fbsdk-next:generateDebugRFile UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :react-native-fbsdk-next) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :react-native-firebase_app:compileDebugLibraryResources (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_app:compileDebugLibraryResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_app:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :react-native-firebase_app) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :react-native-firebase_app:parseDebugLocalResources (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_app:parseDebugLocalResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_app:parseDebugLocalResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :react-native-firebase_app:generateDebugRFile (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_app:generateDebugRFile (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_app:generateDebugRFile UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :react-native-firebase_app) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :react-native-firebase_auth:compileDebugLibraryResources (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_auth:compileDebugLibraryResources (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_auth:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :react-native-firebase_auth) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :react-native-firebase_auth:parseDebugLocalResources (Thread[Execution worker Thread 4,5,main]) started.
+:react-native-firebase_auth:parseDebugLocalResources (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :react-native-firebase_auth:parseDebugLocalResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :react-native-firebase_auth:generateDebugRFile (Thread[Execution worker Thread 4,5,main]) started.
+:react-native-firebase_auth:generateDebugRFile (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :react-native-firebase_auth:generateDebugRFile UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :react-native-firebase_auth) (Thread[Execution worker Thread 4,5,main]) started.
+Resolve mutations for :react-native-firebase_firestore:compileDebugLibraryResources (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-firebase_firestore:compileDebugLibraryResources (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-firebase_firestore:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :react-native-firebase_firestore) (Thread[Execution worker Thread 7,5,main]) started.
+Resolve mutations for :react-native-firebase_firestore:parseDebugLocalResources (Thread[Execution worker Thread 5,5,main]) started.
+:react-native-firebase_firestore:parseDebugLocalResources (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :react-native-firebase_firestore:parseDebugLocalResources UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :react-native-firebase_firestore:generateDebugRFile (Thread[Execution worker Thread 5,5,main]) started.
+:react-native-firebase_firestore:generateDebugRFile (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :react-native-firebase_firestore:generateDebugRFile UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :react-native-firebase_firestore) (Thread[Execution worker Thread 5,5,main]) started.
+Resolve mutations for :react-native-google-signin_google-signin:compileDebugLibraryResources (Thread[Execution worker Thread 5,5,main]) started.
+:react-native-google-signin_google-signin:compileDebugLibraryResources (Thread[Execution worker Thread 5,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :react-native-google-signin_google-signin) (Thread[Execution worker Thread 5,5,main]) started.
+Resolve mutations for :react-native-google-signin_google-signin:parseDebugLocalResources (Thread[Execution worker Thread 11,5,main]) started.
+:react-native-google-signin_google-signin:parseDebugLocalResources (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:parseDebugLocalResources UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :react-native-google-signin_google-signin:generateDebugRFile (Thread[Execution worker Thread 11,5,main]) started.
+:react-native-google-signin_google-signin:generateDebugRFile (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:generateDebugRFile UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :react-native-google-signin_google-signin) (Thread[Execution worker Thread 11,5,main]) started.
+Resolve mutations for :react-native-safe-area-context:compileDebugLibraryResources (Thread[Execution worker Thread 7,5,main]) started.
+:react-native-safe-area-context:compileDebugLibraryResources (Thread[Execution worker Thread 7,5,main]) started.
+
+> Task :react-native-safe-area-context:compileDebugLibraryResources UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:compileDebugLibraryResources' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:compileDebugLibraryResources' as it is up-to-date.
+work action resolve out (project :react-native-safe-area-context) (Thread[Execution worker Thread 7,5,main]) started.
+Resolve mutations for :react-native-safe-area-context:parseDebugLocalResources (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-safe-area-context:parseDebugLocalResources (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-safe-area-context:parseDebugLocalResources UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:parseDebugLocalResources' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:parseDebugLocalResources' as it is up-to-date.
+Resolve mutations for :react-native-safe-area-context:generateDebugRFile (Thread[Execution worker Thread 8,5,main]) started.
+:react-native-safe-area-context:generateDebugRFile (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-safe-area-context:generateDebugRFile UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:generateDebugRFile' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:generateDebugRFile' as it is up-to-date.
+work action resolve package-aware-r.txt (project :react-native-safe-area-context) (Thread[Execution worker Thread 8,5,main]) started.
+Resolve mutations for :app:processDebugResources (Thread[Execution worker Thread 4,5,main]) started.
+:app:processDebugResources (Thread[Execution worker Thread 4,5,main]) started.
+
+> Task :app:processDebugResources UP-TO-DATE
+Caching disabled for task ':app:processDebugResources' because:
+  Build cache is disabled
+Skipping task ':app:processDebugResources' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:generateDebugBuildConfig (Thread[Execution worker Thread 4,5,main]) started.
+:react-native-fbsdk-next:generateDebugBuildConfig (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-fbsdk-next:generateDebugBuildConfig UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:generateDebugBuildConfig' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:generateDebugBuildConfig' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:javaPreCompileDebug (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-fbsdk-next:javaPreCompileDebug (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-fbsdk-next:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :react-native-fbsdk-next:compileDebugJavaWithJavac (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-fbsdk-next:compileDebugJavaWithJavac (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-fbsdk-next:compileDebugJavaWithJavac UP-TO-DATE
+Custom actions are attached to task ':react-native-fbsdk-next:compileDebugJavaWithJavac'.
+Caching disabled for task ':react-native-fbsdk-next:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Skipping task ':react-native-fbsdk-next:compileDebugJavaWithJavac' as it is up-to-date.
+No compile result for :react-native-fbsdk-next:compileDebugJavaWithJavac
+No compile result for :react-native-fbsdk-next:compileDebugJavaWithJavac
+Resolve mutations for :react-native-fbsdk-next:bundleLibCompileToJarDebug (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-fbsdk-next:bundleLibCompileToJarDebug (Thread[Execution worker Thread 8,5,main]) started.
+
+> Task :react-native-fbsdk-next:bundleLibCompileToJarDebug UP-TO-DATE
+Caching disabled for task ':react-native-fbsdk-next:bundleLibCompileToJarDebug' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':react-native-fbsdk-next:bundleLibCompileToJarDebug' as it is up-to-date.
+work action resolve classes.jar (project :react-native-fbsdk-next) (Thread[Execution worker Thread 8,5,main]) started.
+Resolve mutations for :react-native-firebase_app:generateDebugBuildConfig (Thread[Execution worker,5,main]) started.
+:react-native-firebase_app:generateDebugBuildConfig (Thread[Execution worker,5,main]) started.
+
+> Task :react-native-firebase_app:generateDebugBuildConfig UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:generateDebugBuildConfig' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:generateDebugBuildConfig' as it is up-to-date.
+Resolve mutations for :react-native-firebase_app:javaPreCompileDebug (Thread[Execution worker,5,main]) started.
+:react-native-firebase_app:javaPreCompileDebug (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-firebase_app:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :react-native-firebase_app:compileDebugJavaWithJavac (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-firebase_app:compileDebugJavaWithJavac (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-firebase_app:compileDebugJavaWithJavac UP-TO-DATE
+Custom actions are attached to task ':react-native-firebase_app:compileDebugJavaWithJavac'.
+Caching disabled for task ':react-native-firebase_app:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_app:compileDebugJavaWithJavac' as it is up-to-date.
+No compile result for :react-native-firebase_app:compileDebugJavaWithJavac
+No compile result for :react-native-firebase_app:compileDebugJavaWithJavac
+Resolve mutations for :react-native-firebase_app:bundleLibCompileToJarDebug (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-firebase_app:bundleLibCompileToJarDebug (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-firebase_app:bundleLibCompileToJarDebug UP-TO-DATE
+Caching disabled for task ':react-native-firebase_app:bundleLibCompileToJarDebug' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':react-native-firebase_app:bundleLibCompileToJarDebug' as it is up-to-date.
+work action resolve classes.jar (project :react-native-firebase_app) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :react-native-firebase_auth:generateDebugBuildConfig (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-firebase_auth:generateDebugBuildConfig (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-firebase_auth:generateDebugBuildConfig UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:generateDebugBuildConfig' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:generateDebugBuildConfig' as it is up-to-date.
+Resolve mutations for :react-native-firebase_auth:javaPreCompileDebug (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-firebase_auth:javaPreCompileDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_auth:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :react-native-firebase_auth:compileDebugJavaWithJavac (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_auth:compileDebugJavaWithJavac (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_auth:compileDebugJavaWithJavac UP-TO-DATE
+Custom actions are attached to task ':react-native-firebase_auth:compileDebugJavaWithJavac'.
+Caching disabled for task ':react-native-firebase_auth:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_auth:compileDebugJavaWithJavac' as it is up-to-date.
+No compile result for :react-native-firebase_auth:compileDebugJavaWithJavac
+No compile result for :react-native-firebase_auth:compileDebugJavaWithJavac
+Resolve mutations for :react-native-firebase_auth:bundleLibCompileToJarDebug (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_auth:bundleLibCompileToJarDebug (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_auth:bundleLibCompileToJarDebug UP-TO-DATE
+Caching disabled for task ':react-native-firebase_auth:bundleLibCompileToJarDebug' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':react-native-firebase_auth:bundleLibCompileToJarDebug' as it is up-to-date.
+work action resolve classes.jar (project :react-native-firebase_auth) (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :react-native-firebase_firestore:generateDebugBuildConfig (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_firestore:generateDebugBuildConfig (Thread[Execution worker Thread 3,5,main]) started.
+
+> Task :react-native-firebase_firestore:generateDebugBuildConfig UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:generateDebugBuildConfig' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:generateDebugBuildConfig' as it is up-to-date.
+Resolve mutations for :react-native-firebase_firestore:javaPreCompileDebug (Thread[Execution worker Thread 3,5,main]) started.
+:react-native-firebase_firestore:javaPreCompileDebug (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-firebase_firestore:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :react-native-firebase_firestore:compileDebugJavaWithJavac (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-firebase_firestore:compileDebugJavaWithJavac (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-firebase_firestore:compileDebugJavaWithJavac UP-TO-DATE
+Custom actions are attached to task ':react-native-firebase_firestore:compileDebugJavaWithJavac'.
+Caching disabled for task ':react-native-firebase_firestore:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Skipping task ':react-native-firebase_firestore:compileDebugJavaWithJavac' as it is up-to-date.
+No compile result for :react-native-firebase_firestore:compileDebugJavaWithJavac
+No compile result for :react-native-firebase_firestore:compileDebugJavaWithJavac
+Resolve mutations for :react-native-firebase_firestore:bundleLibCompileToJarDebug (Thread[Execution worker Thread 9,5,main]) started.
+:react-native-firebase_firestore:bundleLibCompileToJarDebug (Thread[Execution worker Thread 9,5,main]) started.
+
+> Task :react-native-firebase_firestore:bundleLibCompileToJarDebug UP-TO-DATE
+Caching disabled for task ':react-native-firebase_firestore:bundleLibCompileToJarDebug' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':react-native-firebase_firestore:bundleLibCompileToJarDebug' as it is up-to-date.
+work action resolve classes.jar (project :react-native-firebase_firestore) (Thread[Execution worker Thread 9,5,main]) started.
+Resolve mutations for :react-native-google-signin_google-signin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 11,5,main]) started.
+:react-native-google-signin_google-signin:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':react-native-google-signin_google-signin:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :react-native-google-signin_google-signin:generateDebugBuildConfig (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-google-signin_google-signin:generateDebugBuildConfig (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:generateDebugBuildConfig UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:generateDebugBuildConfig' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:generateDebugBuildConfig' as it is up-to-date.
+Resolve mutations for :react-native-google-signin_google-signin:compileDebugKotlin (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-google-signin_google-signin:compileDebugKotlin (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:compileDebugKotlin UP-TO-DATE
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :react-native-google-signin_google-signin:compileDebugAndroidTestKotlin
+Caching disabled for task ':react-native-google-signin_google-signin:compileDebugKotlin' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:compileDebugKotlin' as it is up-to-date.
+Resolve mutations for :react-native-google-signin_google-signin:javaPreCompileDebug (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-google-signin_google-signin:javaPreCompileDebug (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :react-native-google-signin_google-signin:compileDebugJavaWithJavac (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-google-signin_google-signin:compileDebugJavaWithJavac (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:compileDebugJavaWithJavac UP-TO-DATE
+Custom actions are attached to task ':react-native-google-signin_google-signin:compileDebugJavaWithJavac'.
+Caching disabled for task ':react-native-google-signin_google-signin:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Skipping task ':react-native-google-signin_google-signin:compileDebugJavaWithJavac' as it is up-to-date.
+No compile result for :react-native-google-signin_google-signin:compileDebugJavaWithJavac
+No compile result for :react-native-google-signin_google-signin:compileDebugJavaWithJavac
+Resolve mutations for :react-native-google-signin_google-signin:bundleLibCompileToJarDebug (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-google-signin_google-signin:bundleLibCompileToJarDebug (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-google-signin_google-signin:bundleLibCompileToJarDebug UP-TO-DATE
+Caching disabled for task ':react-native-google-signin_google-signin:bundleLibCompileToJarDebug' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':react-native-google-signin_google-signin:bundleLibCompileToJarDebug' as it is up-to-date.
+work action resolve classes.jar (project :react-native-google-signin_google-signin) (Thread[Execution worker Thread 6,5,main]) started.
+Resolve mutations for :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors (Thread[included builds,5,main]) started.
+:react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':react-native-safe-area-context:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :react-native-safe-area-context:generateDebugBuildConfig (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-safe-area-context:generateDebugBuildConfig (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-safe-area-context:generateDebugBuildConfig UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:generateDebugBuildConfig' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:generateDebugBuildConfig' as it is up-to-date.
+Resolve mutations for :react-native-safe-area-context:compileDebugKotlin (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-safe-area-context:compileDebugKotlin (Thread[Execution worker Thread 6,5,main]) started.
+
+> Task :react-native-safe-area-context:compileDebugKotlin UP-TO-DATE
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :react-native-safe-area-context:compileDebugAndroidTestKotlin
+Caching disabled for task ':react-native-safe-area-context:compileDebugKotlin' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:compileDebugKotlin' as it is up-to-date.
+Resolve mutations for :react-native-safe-area-context:javaPreCompileDebug (Thread[Execution worker Thread 6,5,main]) started.
+:react-native-safe-area-context:javaPreCompileDebug (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :react-native-safe-area-context:javaPreCompileDebug UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:javaPreCompileDebug' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:javaPreCompileDebug' as it is up-to-date.
+Resolve mutations for :react-native-safe-area-context:compileDebugJavaWithJavac (Thread[Execution worker Thread 11,5,main]) started.
+:react-native-safe-area-context:compileDebugJavaWithJavac (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :react-native-safe-area-context:compileDebugJavaWithJavac UP-TO-DATE
+Custom actions are attached to task ':react-native-safe-area-context:compileDebugJavaWithJavac'.
+Caching disabled for task ':react-native-safe-area-context:compileDebugJavaWithJavac' because:
+  Build cache is disabled
+Skipping task ':react-native-safe-area-context:compileDebugJavaWithJavac' as it is up-to-date.
+No compile result for :react-native-safe-area-context:compileDebugJavaWithJavac
+No compile result for :react-native-safe-area-context:compileDebugJavaWithJavac
+Resolve mutations for :react-native-safe-area-context:bundleLibCompileToJarDebug (Thread[Execution worker Thread 11,5,main]) started.
+:react-native-safe-area-context:bundleLibCompileToJarDebug (Thread[Execution worker Thread 11,5,main]) started.
+
+> Task :react-native-safe-area-context:bundleLibCompileToJarDebug UP-TO-DATE
+Caching disabled for task ':react-native-safe-area-context:bundleLibCompileToJarDebug' because:
+  Build cache is disabled
+  Simple merging task
+Skipping task ':react-native-safe-area-context:bundleLibCompileToJarDebug' as it is up-to-date.
+work action resolve classes.jar (project :react-native-safe-area-context) (Thread[Execution worker Thread 11,5,main]) started.
+Resolve mutations for :app:compileDebugKotlin (Thread[Execution worker Thread 2,5,main]) started.
+:app:compileDebugKotlin (Thread[Execution worker Thread 2,5,main]) started.
+
+> Task :app:compileDebugKotlin FAILED
+Adding -Xuse-inline-scopes-numbers Kotlin compiler flag for task :app:compileDebugAndroidTestKotlin
+Caching disabled for task ':app:compileDebugKotlin' because:
+  Build cache is disabled
+Task ':app:compileDebugKotlin' is not up-to-date because:
+  Task has failed previously.
+The input changes require a full rebuild for incremental task ':app:compileDebugKotlin'.
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\kotlin', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\codegen\java', not found
+file or directory 'C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\debug\java', not found
+Kotlin source files: C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\java\com\aito\MainActivity.kt, C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\java\com\aito\MainApplication.kt, C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\java\com\aito\screencapture\ScreenCaptureModule.kt, C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\java\com\aito\screencapture\ScreenCapturePackage.kt, C:\Users\ADMIN\MyProject\A-I-T-O\android\app\src\main\java\com\aito\screencapture\ScreenCaptureService.kt
+Java source files: C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\source\buildConfig\debug\com\aito\BuildConfig.java, C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\autolinking\src\main\java\com\facebook\react\PackageList.java, C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\generated\autolinking\src\main\java\com\facebook\react\ReactNativeApplicationEntryPoint.java
+Script source files: 
+Script file extensions: 
+Using Kotlin/JVM incremental compilation
+[KOTLIN] Kotlin compilation 'jdkHome' argument: null
+Options for KOTLIN DAEMON: IncrementalCompilationOptions(super=CompilationOptions(compilerMode=INCREMENTAL_COMPILER, targetPlatform=JVM, reportCategories=[0, 3], reportSeverity=2, requestedCompilationResults=[0], kotlinScriptExtensions=[]), sourceChanges=org.jetbrains.kotlin.buildtools.api.SourcesChanges$Unknown@5723c5f, classpathChanges=NotAvailableForNonIncrementalRun, workingDir=C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\kotlin\compileDebugKotlin\cacheable, multiModuleICSettings=MultiModuleICSettings(buildHistoryFile=C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\kotlin\compileDebugKotlin\local-state\build-history.bin, useModuleDetection=true), usePreciseJavaTracking=true, icFeatures=IncrementalCompilationFeatures(withAbiSnapshot=false, preciseCompilationResultsBackup=true, keepIncrementalCompilationCachesInMemory=true, enableUnsafeIncrementalCompilationForMultiplatform=false, enableMonotonousIncrementalCompileSetExpansion=true), outputFiles=[C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\tmp\kotlin-classes\debug, C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\kotlin\compileDebugKotlin\cacheable, C:\Users\ADMIN\MyProject\A-I-T-O\android\app\build\kotlin\compileDebugKotlin\local-state])
+.\gradlew : e: file:///C:/Users/ADMIN/MyProjec
+t/A-I-T-O/android/app/src/main/java/com/aito/s
+creencapture/ScreenCaptureModule.kt:44:24 
+Unresolved reference 'currentActivity'.
+At line:1 char:13
++ cd android; .\gradlew 
+:app:compileDebugKotlin --info 2>&1 | 
+Out-File  ...
++             
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   e: file:///C:/U...rrentActivity'.:String)  
+   [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandEr 
+   ror
+ 
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:54:18 Unresolved 
+reference 'startActivityForResult'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:65:34 Unresolved 
+reference 'Build'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:66:48 Unresolved 
+reference 'Build'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:66:73 Unresolved 
+reference 'Build'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:111:17 Unresolved 
+reference 'Build'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:111:42 Unresolved 
+reference 'Build'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:179:13 Unresolved 
+reference 'Build'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:179:38 Unresolved 
+reference 'Build'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:188:24 Unresolved 
+reference 'currentActivity'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:190:13 Unresolved 
+reference 'Build'.
+e: file:///C:/Users/ADMIN/MyProject/A-I-T-O/an
+droid/app/src/main/java/com/aito/screencapture
+/ScreenCaptureModule.kt:190:38 Unresolved 
+reference 'Build'.
+Finished executing kotlin compiler using DAEMON strategy
+Build f8dfc094-ee4e-4576-86ae-8e0130cf6626 is closed
+Build da6ef23c-19f7-4525-8efe-57263b16b0c9 is closed
+
+[Incubating] Problems report is available at: file:///C:/Users/ADMIN/MyProject/A-I-T-O/android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task 
+':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbr
+ains.kotlin.compilerRunner.GradleCompilerRunne
+rWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more 
+details
+
+* Try:
+> Run with --stacktrace option to get the 
+stack trace.
+> Run with --debug option to get more log 
+output.
+> Run with --scan to generate a Build Scan 
+(Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.0.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 2s
+113 actionable tasks: 1 executed, 112 up-to-date
+Watched directory hierarchies: [C:\Users\ADMIN\MyProject\A-I-T-O\node_modules\@react-native\gradle-plugin, C:\Users\ADMIN\MyProject\A-I-T-O\android]

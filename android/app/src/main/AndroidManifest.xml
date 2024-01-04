@@ -1,6 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Screen Capture Permissions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    
+    <!-- Overlay Permission -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
       android:name=".MainApplication"
@@ -40,9 +47,16 @@
               <action android:name="android.intent.action.VIEW" />
               <category android:name="android.intent.category.DEFAULT" />
               <category android:name="android.intent.category.BROWSABLE" />
-              <data android:scheme="@string/fb_login_protocol_scheme" />
+          <data android:scheme="@string/fb_login_protocol_scheme" />
           </intent-filter>
       </activity>
+
+      <!-- Screen Capture Foreground Service -->
+      <service
+          android:name=".screencapture.ScreenCaptureService"
+          android:enabled="true"
+          android:exported="false"
+          android:foregroundServiceType="mediaProjection" />
 
     </application>
 </manifest>
