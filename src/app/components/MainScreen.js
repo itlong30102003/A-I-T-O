@@ -7,17 +7,18 @@ import {
     StyleSheet,
     ScrollView,
     Image,
+    ActivityIndicator,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import ScreenCapture from '../native/ScreenCapture';
+import { screenCaptureService } from '../services/ScreenCaptureService';
 
 export default function MainScreen({ onLogout }) {
     const [user, setUser] = useState(null);
-    const [isCapturing, setIsCapturing] = useState(false);
-    const [latestFrame, setLatestFrame] = useState(null); // Single latest frame for live preview
-    const [androidInfo, setAndroidInfo] = useState(null);
-    const [permissionGranted, setPermissionGranted] = useState(false);
+    const [captureState, setCaptureState] = useState(screenCaptureService.state);
+    const [isChangingApp, setIsChangingApp] = useState(false);
+    const [duration, setDuration] = useState('00:00');
 
+    // Khởi tạo service và subscribe state changes
     useEffect(() => {
         // Get current user
         const currentUser = auth().currentUser;
@@ -31,20 +32,35 @@ export default function MainScreen({ onLogout }) {
             });
         }
 
-        // Get Android version info
-        ScreenCapture.getAndroidVersion().then(info => {
-            setAndroidInfo(info);
-        });
+        // Khởi tạo capture service
+        screenCaptureService.initialize();
+
+        // Subscribe to state changes
+        const unsubscribe = screenCaptureService.onStateChange(setCaptureState);
 
         // Cleanup on unmount
         return () => {
-            ScreenCapture.stopCapture().catch(() => { });
+            unsubscribe();
+            screenCaptureService.cleanup();
         };
     }, []);
 
+    // Update duration every second while capturing
+    useEffect(() => {
+        let interval;
+        if (captureState.isCapturing) {
+            interval = setInterval(() => {
+                setDuration(screenCaptureService.formatDuration());
+            }, 1000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [captureState.isCapturing]);
+
     const handleLogout = async () => {
         try {
-            await ScreenCapture.stopCapture();
+            screenCaptureService.cleanup();
             await auth().signOut();
             if (onLogout) onLogout();
         } catch (error) {
@@ -52,58 +68,81 @@ export default function MainScreen({ onLogout }) {
         }
     };
 
-    // Step 1: Select app to capture (shows Android dialog)
-    const handleSelectApp = async () => {
+    // Chọn app để capture
+    const handleSelectApp = async (isChanging = false) => {
         try {
-            const granted = await ScreenCapture.requestPermission();
+            if (isChanging) setIsChangingApp(true);
+
+            const granted = await screenCaptureService.selectApp();
+
             if (!granted) {
-                Alert.alert('Thông báo', 'Bạn đã từ chối cấp quyền');
-                return;
+                Alert.alert(
+                    'Quyền bị từ chối',
+                    isChanging
+                        ? 'Bạn đã hủy việc đổi app.'
+                        : 'Bạn cần cấp quyền để capture màn hình.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                // Tự động bắt đầu capture sau khi chọn app
+                try {
+                    await screenCaptureService.startCapture({ intervalMs: 500 });
+                    // Không hiện alert - để user tiếp tục dùng app đã chọn
+                } catch (captureError) {
+                    Alert.alert('Lỗi', captureError.message || 'Không thể bắt đầu capture');
+                }
             }
-            setPermissionGranted(true);
-            Alert.alert('Thành công', 'Đã chọn nguồn capture! Nhấn "Bắt đầu" để xem live preview.');
         } catch (error) {
-            Alert.alert('Lỗi', error.message || 'Không thể chọn app');
+            const isPermissionDenied = error.message?.includes('PERMISSION_DENIED');
+            Alert.alert('Lỗi', isPermissionDenied ? 'Bạn đã hủy việc chọn app.' : error.message);
+        } finally {
+            setIsChangingApp(false);
         }
     };
 
-    // Step 2: Start capture after app is selected
+    // Đổi app capture
+    const handleChangeApp = () => {
+        if (screenCaptureService.supportsAppSelection) {
+            Alert.alert(
+                '🔄 Đổi App Capture',
+                captureState.isCapturing
+                    ? 'Capture hiện tại sẽ dừng và bạn có thể chọn app mới.'
+                    : 'Bạn có muốn chọn app khác để capture?',
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Đổi App', onPress: () => handleSelectApp(true) }
+                ]
+            );
+        } else {
+            Alert.alert('Không hỗ trợ', 'Cần Android 14+ để chọn app cụ thể.', [{ text: 'OK' }]);
+        }
+    };
+
+    // Bắt đầu capture
     const handleStartCapture = async () => {
-        if (!permissionGranted) {
-            Alert.alert('Thông báo', 'Vui lòng chọn app trước!');
+        if (!captureState.permissionGranted) {
+            Alert.alert('Chưa chọn nguồn', 'Vui lòng chọn app trước khi bắt đầu!', [{ text: 'OK' }]);
             return;
         }
 
         try {
-            // Subscribe to frame events - update live preview
-            const subscription = ScreenCapture.onFrameCaptured((event) => {
-                console.log('Frame captured:', event.imagePath);
-                setLatestFrame({
-                    path: event.imagePath,
-                    timestamp: Date.now()
-                });
-            });
-
-            // Start capturing
-            await ScreenCapture.startCapture({ intervalMs: 500 });
-            setIsCapturing(true);
-
+            await screenCaptureService.startCapture({ intervalMs: 500 });
         } catch (error) {
-            Alert.alert('Lỗi', error.message || 'Không thể bắt đầu capture');
+            Alert.alert('Lỗi khởi động', error.message || 'Không thể bắt đầu capture.', [{ text: 'OK' }]);
         }
     };
 
+    // Dừng capture
     const handleStopCapture = async () => {
         try {
-            await ScreenCapture.stopCapture();
-            setIsCapturing(false);
-            setLatestFrame(null);
-            // Reset permission so user can select different app next time
-            setPermissionGranted(false);
+            await screenCaptureService.stopCapture();
         } catch (error) {
-            Alert.alert('Lỗi', error.message || 'Không thể dừng capture');
+            Alert.alert('Lỗi', error.message || 'Không thể dừng capture', [{ text: 'OK' }]);
         }
     };
+
+    // Destructure state for easier access
+    const { isCapturing, permissionGranted, latestFrame, androidInfo } = captureState;
 
     return (
         <ScrollView style={styles.container}>
@@ -118,69 +157,146 @@ export default function MainScreen({ onLogout }) {
             {/* Android Info */}
             <View style={styles.infoSection}>
                 <Text style={styles.sectionTitle}>📱 Thông tin thiết bị</Text>
-                <Text style={styles.infoText}>
-                    Android SDK: {androidInfo?.sdkVersion || 'Loading...'}
-                </Text>
-                <Text style={styles.infoText}>
-                    Hỗ trợ chọn App: {androidInfo?.supportsAppSelection ? '✅ Có (Android 14+)' : '❌ Không'}
-                </Text>
+                {androidInfo ? (
+                    <>
+                        <Text style={styles.infoText}>
+                            🤖 Android: {androidInfo.androidVersion || 'N/A'} (API {androidInfo.sdkVersion})
+                        </Text>
+                        <Text style={[
+                            styles.infoText,
+                            androidInfo.supportsAppSelection && styles.infoTextSuccess
+                        ]}>
+                            {androidInfo.supportsAppSelection
+                                ? '✅ Hỗ trợ chọn App cụ thể (Android 14+)'
+                                : '📺 Chế độ Full Screen (Android < 14)'}
+                        </Text>
+                        {androidInfo.supportsAppSelection && (
+                            <Text style={styles.infoTextSmall}>
+                                💡 Bạn có thể chọn capture chỉ 1 app cụ thể
+                            </Text>
+                        )}
+                    </>
+                ) : (
+                    <Text style={styles.infoText}>⏳ Đang tải thông tin...</Text>
+                )}
             </View>
 
             {/* Screen Capture Controls */}
             <View style={styles.captureSection}>
                 <Text style={styles.sectionTitle}>🎥 Screen Capture</Text>
 
-                <Text style={styles.statusText}>
-                    Nguồn: {permissionGranted ? '✅ Đã chọn' : '❌ Chưa chọn app'}
-                </Text>
-                <Text style={styles.statusText}>
-                    Trạng thái: {isCapturing ? '🟢 Đang capture' : '🔴 Đã dừng'}
-                </Text>
+                {/* Status Display */}
+                <View style={styles.statusContainer}>
+                    <View style={styles.statusRow}>
+                        <Text style={styles.statusLabel}>Nguồn:</Text>
+                        <Text style={[
+                            styles.statusValue,
+                            permissionGranted ? styles.statusSuccess : styles.statusError
+                        ]}>
+                            {permissionGranted ? '✅ Đã chọn' : '❌ Chưa chọn'}
+                        </Text>
+                    </View>
+                    <View style={styles.statusRow}>
+                        <Text style={styles.statusLabel}>Trạng thái:</Text>
+                        <View style={styles.statusValueContainer}>
+                            {isCapturing && <View style={styles.pulsingDot} />}
+                            <Text style={[
+                                styles.statusValue,
+                                isCapturing ? styles.statusSuccess : styles.statusError
+                            ]}>
+                                {isCapturing ? 'Đang capture' : 'Đã dừng'}
+                            </Text>
+                        </View>
+                    </View>
+                    {isCapturing && (
+                        <View style={styles.statusRow}>
+                            <Text style={styles.statusLabel}>Thời gian:</Text>
+                            <Text style={styles.statusValue}>⏱️ {duration}</Text>
+                        </View>
+                    )}
+                </View>
 
-                {/* Step 1: Select App Button */}
-                {!permissionGranted && !isCapturing && (
+                {/* Loading indicator when changing app */}
+                {isChangingApp && (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color="#4285F4" />
+                        <Text style={styles.loadingText}>Đang đổi app...</Text>
+                    </View>
+                )}
+
+                {/* Step 1: Select App Button - Show when no permission */}
+                {!permissionGranted && !isCapturing && !isChangingApp && (
                     <TouchableOpacity
                         style={styles.buttonPrimary}
-                        onPress={handleSelectApp}
+                        onPress={() => handleSelectApp(false)}
                     >
-                        <Text style={styles.buttonText}>📱 Chọn App để Capture</Text>
+                        <Text style={styles.buttonText}>
+                            {androidInfo?.supportsAppSelection
+                                ? '🎯 Chọn App để Capture'
+                                : '📺 Cấp quyền Capture'}
+                        </Text>
                     </TouchableOpacity>
                 )}
 
-                {/* Step 2: Start/Stop Buttons - Only show after app selected */}
-                {permissionGranted && (
-                    <View style={styles.buttonRow}>
-                        <TouchableOpacity
-                            style={[styles.buttonStart, isCapturing && styles.buttonDisabled]}
-                            onPress={handleStartCapture}
-                            disabled={isCapturing}
-                        >
-                            <Text style={styles.buttonText}>▶️ Bắt đầu</Text>
-                        </TouchableOpacity>
+                {/* Step 2: Control Buttons - Show after app selected */}
+                {permissionGranted && !isChangingApp && (
+                    <>
+                        <View style={styles.buttonRow}>
+                            <TouchableOpacity
+                                style={[styles.buttonStart, isCapturing && styles.buttonDisabled]}
+                                onPress={handleStartCapture}
+                                disabled={isCapturing}
+                            >
+                                <Text style={styles.buttonText}>▶️ Bắt đầu</Text>
+                            </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.buttonStop, !isCapturing && styles.buttonDisabled]}
-                            onPress={handleStopCapture}
-                            disabled={!isCapturing}
-                        >
-                            <Text style={styles.buttonText}>⏹️ Dừng</Text>
-                        </TouchableOpacity>
-                    </View>
+                            <TouchableOpacity
+                                style={[styles.buttonStop, !isCapturing && styles.buttonDisabled]}
+                                onPress={handleStopCapture}
+                                disabled={!isCapturing}
+                            >
+                                <Text style={styles.buttonText}>⏹️ Dừng</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Change App Button - Only show on Android 14+ */}
+                        {androidInfo?.supportsAppSelection && (
+                            <TouchableOpacity
+                                style={styles.buttonChangeApp}
+                                onPress={handleChangeApp}
+                            >
+                                <Text style={styles.buttonChangeAppText}>
+                                    🔄 Đổi App Capture
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </>
                 )}
             </View>
 
-            {/* Live Preview - Updates every second */}
+            {/* Live Preview */}
             {latestFrame && (
                 <View style={styles.framesSection}>
                     <Text style={styles.sectionTitle}>📺 Live Preview</Text>
-                    <Image
-                        key={latestFrame.timestamp}
-                        source={{ uri: `file://${latestFrame.path}?t=${latestFrame.timestamp}` }}
-                        style={styles.livePreviewImage}
-                        resizeMode="contain"
-                    />
+                    <View style={styles.previewContainer}>
+                        <Image
+                            key={latestFrame.timestamp}
+                            source={{ uri: `file://${latestFrame.path}?t=${latestFrame.timestamp}` }}
+                            style={styles.livePreviewImage}
+                            resizeMode="contain"
+                        />
+                        <View style={styles.previewOverlay}>
+                            <View style={styles.liveIndicator}>
+                                <View style={styles.liveDot} />
+                                <Text style={styles.liveText}>LIVE</Text>
+                            </View>
+                        </View>
+                    </View>
                     <Text style={styles.timestampText}>
-                        Cập nhật: {new Date(latestFrame.timestamp).toLocaleTimeString()}
+                        🕐 Cập nhật: {new Date(latestFrame.timestamp).toLocaleTimeString('vi-VN')}
+                    </Text>
+                    <Text style={styles.infoTextSmall}>
+                        💡 Preview tự động cập nhật khi nội dung thay đổi
                     </Text>
                 </View>
             )}
@@ -233,16 +349,73 @@ const styles = StyleSheet.create({
         color: '#666',
         marginBottom: 4,
     },
+    infoTextSuccess: {
+        color: '#34A853',
+        fontWeight: '600',
+    },
+    infoTextSmall: {
+        fontSize: 12,
+        color: '#888',
+        marginTop: 4,
+        fontStyle: 'italic',
+    },
     captureSection: {
         backgroundColor: '#fff',
         padding: 16,
         borderRadius: 12,
         marginBottom: 16,
     },
-    statusText: {
+    statusContainer: {
+        backgroundColor: '#f8f9fa',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 12,
+    },
+    statusRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    statusLabel: {
         fontSize: 14,
         color: '#666',
-        marginBottom: 8,
+        width: 80,
+    },
+    statusValue: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+    },
+    statusValueContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    statusSuccess: {
+        color: '#34A853',
+    },
+    statusError: {
+        color: '#EA4335',
+    },
+    pulsingDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#34A853',
+        marginRight: 6,
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 12,
+        backgroundColor: '#e3f2fd',
+        borderRadius: 8,
+        marginBottom: 12,
+    },
+    loadingText: {
+        marginLeft: 8,
+        color: '#1976d2',
+        fontSize: 14,
     },
     buttonPrimary: {
         backgroundColor: '#4285F4',
@@ -280,19 +453,53 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    buttonChangeApp: {
+        backgroundColor: '#fff',
+        borderWidth: 2,
+        borderColor: '#4285F4',
+        padding: 14,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    buttonChangeAppText: {
+        color: '#4285F4',
+        fontSize: 15,
+        fontWeight: '600',
+    },
     framesSection: {
         backgroundColor: '#fff',
         padding: 16,
         borderRadius: 12,
         marginBottom: 16,
     },
-    frameImage: {
-        width: 150,
-        height: 250,
-        marginRight: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#ddd',
+    previewContainer: {
+        position: 'relative',
+    },
+    previewOverlay: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+    },
+    liveIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(234, 67, 53, 0.9)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+    },
+    liveDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#fff',
+        marginRight: 4,
+    },
+    liveText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
     livePreviewImage: {
         width: '100%',

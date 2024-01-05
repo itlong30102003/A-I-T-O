@@ -5,9 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
 import android.media.projection.MediaProjectionManager
+import android.media.projection.MediaProjectionConfig
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.facebook.react.bridge.ActivityEventListener
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -23,8 +25,10 @@ class ScreenCaptureModule(reactContext: ReactApplicationContext) :
     companion object {
         private const val TAG = "ScreenCaptureModule"
         private const val REQUEST_MEDIA_PROJECTION = 1000
-        private const val REQUEST_MEDIA_PROJECTION_APP_SELECT = 1001
         const val NAME = "ScreenCaptureModule"
+        
+        // Android 14 = API 34 (UPSIDE_DOWN_CAKE)
+        private const val ANDROID_14_API_LEVEL = 34
     }
     
     private var pendingPromise: Promise? = null
@@ -39,29 +43,53 @@ class ScreenCaptureModule(reactContext: ReactApplicationContext) :
     
     /**
      * Request permission for screen capture with app selection on Android 14+
+     * On Android 14+, user can choose to share only a specific app window
+     * On older versions, falls back to full screen capture
      */
     @ReactMethod
-    @android.annotation.SuppressLint("NewApi")
     fun requestPermission(promise: Promise) {
         val activity = reactApplicationContext.currentActivity
         if (activity == null) {
+            Log.e(TAG, "Activity is null, cannot request permission")
             promise.reject("ERROR", "Activity is null")
+            return
+        }
+        
+        if (pendingPromise != null) {
+            Log.w(TAG, "Permission request already in progress")
+            promise.reject("ERROR", "Permission request already in progress")
             return
         }
         
         pendingPromise = promise
         
-        // On Android 14+, allow user to select specific app
-        val captureIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val config = android.media.projection.MediaProjectionConfig.createConfigForUserChoice()
-            projectionManager.createScreenCaptureIntent(config)
-        } else {
-            projectionManager.createScreenCaptureIntent()
+        try {
+            // On Android 14+ (API 34), allow user to select specific app
+            val captureIntent = if (Build.VERSION.SDK_INT >= ANDROID_14_API_LEVEL) {
+                Log.d(TAG, "Android 14+ detected, using app selection mode")
+                createAppSelectionIntent()
+            } else {
+                Log.d(TAG, "Android < 14, using full screen capture mode")
+                projectionManager.createScreenCaptureIntent()
+            }
+            
+            activity.startActivityForResult(captureIntent, REQUEST_MEDIA_PROJECTION)
+            Log.d(TAG, "MediaProjection permission dialog launched")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error requesting permission: ${e.message}", e)
+            pendingPromise = null
+            promise.reject("ERROR", "Failed to request permission: ${e.message}")
         }
-        
-        activity.startActivityForResult(captureIntent, REQUEST_MEDIA_PROJECTION)
-        
-        Log.d(TAG, "Requested MediaProjection permission (app selection on Android 14+)")
+    }
+    
+    /**
+     * Create intent for app selection on Android 14+
+     */
+    @RequiresApi(ANDROID_14_API_LEVEL)
+    private fun createAppSelectionIntent(): Intent {
+        val config = MediaProjectionConfig.createConfigForUserChoice()
+        return projectionManager.createScreenCaptureIntent(config)
     }
     
     /**
@@ -69,9 +97,15 @@ class ScreenCaptureModule(reactContext: ReactApplicationContext) :
      */
     @ReactMethod
     fun getAndroidVersion(promise: Promise) {
+        val sdkVersion = Build.VERSION.SDK_INT
+        val supportsAppSelection = sdkVersion >= ANDROID_14_API_LEVEL
+        
+        Log.d(TAG, "Android SDK: $sdkVersion, Supports app selection: $supportsAppSelection")
+        
         promise.resolve(Arguments.createMap().apply {
-            putInt("sdkVersion", Build.VERSION.SDK_INT)
-            putBoolean("supportsAppSelection", Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+            putInt("sdkVersion", sdkVersion)
+            putBoolean("supportsAppSelection", supportsAppSelection)
+            putString("androidVersion", Build.VERSION.RELEASE)
         })
     }
     
@@ -213,17 +247,34 @@ class ScreenCaptureModule(reactContext: ReactApplicationContext) :
     // ActivityEventListener methods
     override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_MEDIA_PROJECTION) {
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                // Store the result for the service to use
-                ScreenCaptureService.resultCode = resultCode
-                ScreenCaptureService.resultData = data
-                
-                Log.d(TAG, "MediaProjection permission granted")
-                pendingPromise?.resolve(true)
-            } else {
-                Log.d(TAG, "MediaProjection permission denied")
-                pendingPromise?.reject("PERMISSION_DENIED", "User denied screen capture permission")
+            Log.d(TAG, "onActivityResult: requestCode=$requestCode, resultCode=$resultCode, hasData=${data != null}")
+            
+            when (resultCode) {
+                Activity.RESULT_OK -> {
+                    if (data != null) {
+                        // Store the result for the service to use
+                        ScreenCaptureService.resultCode = resultCode
+                        ScreenCaptureService.resultData = data
+                        
+                        val isAndroid14Plus = Build.VERSION.SDK_INT >= ANDROID_14_API_LEVEL
+                        Log.d(TAG, "✅ MediaProjection permission granted (Android 14+ app selection: $isAndroid14Plus)")
+                        
+                        pendingPromise?.resolve(true)
+                    } else {
+                        Log.e(TAG, "❌ Result OK but data is null")
+                        pendingPromise?.reject("ERROR", "Permission granted but data is null")
+                    }
+                }
+                Activity.RESULT_CANCELED -> {
+                    Log.w(TAG, "❌ User canceled screen capture permission")
+                    pendingPromise?.reject("PERMISSION_DENIED", "User canceled screen capture permission")
+                }
+                else -> {
+                    Log.e(TAG, "❌ Unexpected result code: $resultCode")
+                    pendingPromise?.reject("ERROR", "Unexpected result code: $resultCode")
+                }
             }
+            
             pendingPromise = null
         }
     }
