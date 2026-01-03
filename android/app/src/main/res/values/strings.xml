@@ -1,3 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AITO</string>
+    <string name="facebook_app_id">1213268594063132</string>
+    <string name="fb_login_protocol_scheme">fb1213268594063132</string>
+    <string name="facebook_client_token">f30d95ea2661bf7976dc320fb1492b11</string>
 </resources>
