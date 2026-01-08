@@ -8,6 +8,7 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.aito.screencapture.ScreenCapturePackage
 import com.aito.textdetection.TextDetectionPackage
+import com.aito.device.DevicePackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -19,6 +20,7 @@ class MainApplication : Application(), ReactApplication {
           // Packages that cannot be autolinked yet can be added manually here
           add(ScreenCapturePackage())
           add(TextDetectionPackage())
+          add(DevicePackage())
         },
     )
   }
