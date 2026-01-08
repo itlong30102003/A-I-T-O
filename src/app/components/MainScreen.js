@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import { screenCaptureService } from '../services/ScreenCaptureService';
+import { ocrPipelineService } from '../services/OCRPipelineService';
 
 export default function MainScreen({ onLogout }) {
     const [user, setUser] = useState(null);
@@ -45,16 +46,25 @@ export default function MainScreen({ onLogout }) {
         };
     }, []);
 
-    // Update duration every second while capturing
+    // Update duration and handle OCR pipeline state
     useEffect(() => {
         let interval;
         if (captureState.isCapturing) {
+            // Start duration timer
             interval = setInterval(() => {
                 setDuration(screenCaptureService.formatDuration());
             }, 1000);
+
+            // Start OCR Pipeline (default latin for now)
+            ocrPipelineService.start('latin');
+        } else {
+            // Stop OCR Pipeline
+            ocrPipelineService.stop();
         }
+
         return () => {
             if (interval) clearInterval(interval);
+            ocrPipelineService.stop();
         };
     }, [captureState.isCapturing]);
 

@@ -105,7 +105,6 @@ class ScreenCaptureService {
         try {
             const info = await ScreenCaptureModule.getAndroidVersion();
             this.updateState({ androidInfo: info });
-            console.log('📱 ScreenCaptureService initialized:', info);
             return info;
         } catch (error) {
             console.error('❌ Failed to initialize:', error);
@@ -130,7 +129,6 @@ class ScreenCaptureService {
             const granted = await ScreenCaptureModule.requestPermission();
 
             this.updateState({ permissionGranted: granted });
-            console.log(granted ? '✅ Permission granted' : '❌ Permission denied');
             return granted;
         } catch (error) {
             console.error('❌ Error selecting app:', error);
@@ -170,7 +168,6 @@ class ScreenCaptureService {
 
             await ScreenCaptureModule.startCapture(options);
             this.updateState({ isCapturing: true, captureStartTime: Date.now() });
-            console.log('✅ Capture started');
         } catch (error) {
             console.error('❌ Failed to start:', error);
             this.removeFrameSubscription();
@@ -195,7 +192,6 @@ class ScreenCaptureService {
                 captureStartTime: null,
                 permissionGranted: false,
             });
-            console.log('✅ Capture stopped');
         } catch (error) {
             console.error('❌ Failed to stop:', error);
             throw error;
