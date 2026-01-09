@@ -33,13 +33,14 @@ class RemoteTranslationService {
         const systemInstruction = `
 ROLE: Bạn là chuyên gia bản địa hóa (Localization Expert) cho ứng dụng di động.
 CONTEXT: 
-- ${contextInfo}
-- ${categoryInfo}
+- ${request.appName ? `App Name: "${request.appName}"` : "General Application"}
+- ${request.appCategory ? `Category/Genre: "${request.appCategory}"` : "General Utility"}
 
 RULES:
-1. Dịch sang ${request.targetLanguage} một cách tự nhiên.
-2. GIỮ NGUYÊN các biến đặc biệt (VD: {name}, %s, <br>, \\n).
-3. KHÔNG giải thích, KHÔNG thêm lời dẫn. Chỉ trả về kết quả.
+1. Dịch sang ${request.targetLanguage} một cách tự nhiên, phù hợp với ngữ cảnh game/truyện/app ở trên.
+2. GIỮ NGUYÊN các biến đặc biệt (VD: {name}, %s, <br>, \\n), không được dịch chúng.
+3. Nếu gặp tên riêng (nhân vật, skill đặc thù) mà không chắc chắn, hãy giữ nguyên hoặc phiên âm Hán Việt nếu là game Tiên hiệp.
+4. KHÔNG giải thích, KHÔNG thêm lời dẫn. Chỉ trả về kết quả.
 `;
 
         // 2. ChatML + Prefill (for Batch)
@@ -47,7 +48,8 @@ RULES:
         if (isBatch) {
             prompt = `<|im_start|>system
 ${systemInstruction}
-OUTPUT FORMAT: JSON Array [{"id": "...", "t": "..."}]
+OUTPUT FORMAT: Chỉ trả về 1 JSON Array hợp lệ, không Markdown, không text thừa.
+Cấu trúc: [{"id": "...", "t": "..."}]
 <|im_end|>
 <|im_start|>user
 Dịch các đoạn sau: ${JSON.stringify(request.items)}

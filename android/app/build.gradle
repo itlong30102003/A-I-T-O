@@ -85,6 +85,17 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
+    // Handle large asset files (like GGUF models)
+    aaptOptions {
+        noCompress "gguf"
+    }
+
+    // Increase dex heap for large builds
+    dexOptions {
+        javaMaxHeapSize "4g"
+    }
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')

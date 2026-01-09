@@ -12,12 +12,16 @@ import {
 import auth from '@react-native-firebase/auth';
 import { screenCaptureService } from '../services/ScreenCaptureService';
 import { ocrPipelineService } from '../services/OCRPipelineService';
+import benchmarkService from '../services/BenchmarkService';
+import TranslationManager from '../services/TranslationManager';
 
 export default function MainScreen({ onLogout }) {
     const [user, setUser] = useState(null);
     const [captureState, setCaptureState] = useState(screenCaptureService.state);
     const [isChangingApp, setIsChangingApp] = useState(false);
     const [duration, setDuration] = useState('00:00');
+    const [benchmarkResults, setBenchmarkResults] = useState([]);
+    const [isBenchmarking, setIsBenchmarking] = useState(false);
 
     // Khởi tạo service và subscribe state changes
     useEffect(() => {
@@ -148,6 +152,29 @@ export default function MainScreen({ onLogout }) {
             await screenCaptureService.stopCapture();
         } catch (error) {
             Alert.alert('Lỗi', error.message || 'Không thể dừng capture', [{ text: 'OK' }]);
+        }
+    };
+
+    // Run Benchmark
+    const runBenchmark = async () => {
+        if (isBenchmarking) return;
+
+        setIsBenchmarking(true);
+        setBenchmarkResults([]);
+
+        try {
+            // Ensure strategist is initialized
+            await TranslationManager.initialize();
+
+            await benchmarkService.runTests((result) => {
+                setBenchmarkResults(prev => [...prev, result]);
+            });
+
+            Alert.alert('Hoàn tất', 'Đã chạy xong bài test benchmark!');
+        } catch (error) {
+            Alert.alert('Lỗi Benchmark', error.message);
+        } finally {
+            setIsBenchmarking(false);
         }
     };
 
@@ -310,6 +337,50 @@ export default function MainScreen({ onLogout }) {
                     </Text>
                 </View>
             )}
+
+            {/* AI Benchmark Tool */}
+            <View style={styles.benchmarkSection}>
+                <Text style={styles.sectionTitle}>🚀 Local AI Benchmark (Qwen)</Text>
+                <Text style={styles.infoText}>
+                    Test tốc độ và độ chính xác của model Local dựa trên độ dài văn bản.
+                </Text>
+
+                <TouchableOpacity
+                    style={[styles.buttonBenchmark, isBenchmarking && styles.buttonDisabled]}
+                    onPress={runBenchmark}
+                    disabled={isBenchmarking}
+                >
+                    {isBenchmarking ? (
+                        <View style={styles.row}>
+                            <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                            <Text style={styles.buttonText}>Đang đánh giá...</Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.buttonText}>🔥 Bắt đầu Benchmark</Text>
+                    )}
+                </TouchableOpacity>
+
+                {benchmarkResults.length > 0 && (
+                    <View style={styles.resultsContainer}>
+                        {benchmarkResults.map((res) => (
+                            <View key={res.id} style={styles.resultItem}>
+                                <View style={styles.resultHeader}>
+                                    <Text style={styles.resultId}>#Test {res.id}</Text>
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{res.latencyMs}ms</Text>
+                                    </View>
+                                    <Text style={styles.cpsText}>{res.cps} char/s</Text>
+                                </View>
+                                <Text style={styles.originalText} numberOfLines={1}>Input: "{res.text}"</Text>
+                                <View style={styles.translatedBox}>
+                                    <Text style={styles.translatedTitle}>Output:</Text>
+                                    <Text style={styles.translatedTextContent}>{res.translatedText}</Text>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                )}
+            </View>
 
             {/* Logout Button */}
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -537,4 +608,89 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    // Benchmark Styles
+    benchmarkSection: {
+        backgroundColor: '#fff',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    buttonBenchmark: {
+        backgroundColor: '#6200EE',
+        padding: 14,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 12,
+    },
+    resultsContainer: {
+        marginTop: 16,
+    },
+    resultItem: {
+        backgroundColor: '#f9f9f9',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 12,
+        borderLeftWidth: 4,
+        borderLeftColor: '#6200EE',
+    },
+    resultHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    resultId: {
+        fontWeight: 'bold',
+        color: '#333',
+        marginRight: 8,
+    },
+    badge: {
+        backgroundColor: '#E1F5FE',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginRight: 8,
+    },
+    badgeText: {
+        fontSize: 11,
+        color: '#0288D1',
+        fontWeight: 'bold',
+    },
+    cpsText: {
+        fontSize: 11,
+        color: '#666',
+        marginLeft: 'auto',
+    },
+    originalText: {
+        fontSize: 12,
+        color: '#888',
+        fontStyle: 'italic',
+        marginBottom: 4,
+    },
+    translatedBox: {
+        backgroundColor: '#fff',
+        padding: 8,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: '#eee',
+    },
+    translatedTitle: {
+        fontSize: 10,
+        color: '#999',
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    translatedTextContent: {
+        fontSize: 14,
+        color: '#333',
+        lineHeight: 18,
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    }
 });

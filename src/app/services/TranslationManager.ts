@@ -1,43 +1,26 @@
-import DeviceService from './DeviceService';
-import LocalTranslationService from './LocalTranslationService';
-import RemoteTranslationService, { TranslationRequest, TranslationResponse } from './RemoteTranslationService';
+import MLKitTranslationService from './MLKitTranslationService';
+import { TranslationRequest, TranslationResponse } from './RemoteTranslationService';
 
-export type TranslationStrategy = 'LOCAL' | 'REMOTE' | 'AUTO';
+export type TranslationStrategy = 'MLKIT';
 
 class TranslationManager {
-    private strategy: TranslationStrategy = 'AUTO';
-    private activeStrategy: 'LOCAL' | 'REMOTE' = 'REMOTE';
+    private strategy: TranslationStrategy = 'MLKIT';
+    private activeStrategy: 'MLKIT' = 'MLKIT';
     private isInitialized = false;
 
     /**
-     * Initialize the manager and decide the strategy
+     * Initialize the manager and force MLKIT usage
      */
-    async initialize(preferredStrategy: TranslationStrategy = 'AUTO') {
-        this.strategy = preferredStrategy;
-
-        if (this.strategy === 'AUTO') {
-            const totalRam = await DeviceService.getTotalRam();
-            console.log(`TranslationManager: Detected ${totalRam.toFixed(2)}GB RAM`);
-
-            // Threshold: 4GB RAM for Local Inference
-            if (totalRam >= 4) {
-                this.activeStrategy = 'LOCAL';
-                console.log('TranslationManager: Choosing LOCAL strategy');
-            } else {
-                this.activeStrategy = 'REMOTE';
-                console.log('TranslationManager: Choosing REMOTE strategy (Fallback for low RAM)');
-            }
-        } else {
-            this.activeStrategy = this.strategy as 'LOCAL' | 'REMOTE';
-        }
-
+    async initialize(preferredStrategy: TranslationStrategy = 'MLKIT') {
+        this.strategy = 'MLKIT';
+        this.activeStrategy = 'MLKIT';
+        console.log('TranslationManager: Initialized with MLKIT as the exclusive strategy');
         this.isInitialized = true;
     }
 
     /**
-   * Main entry point for translation (Microservice API)
-   * All requests go through the queue
-   */
+    * Main entry point for translation (Microservice API)
+    */
     async translate(request: TranslationRequest): Promise<TranslationResponse> {
         const TranslationQueue = require('./TranslationQueue').default;
         return await TranslationQueue.enqueue(request);
@@ -52,20 +35,11 @@ class TranslationManager {
         }
 
         try {
-            if (this.activeStrategy === 'LOCAL') {
-                return await LocalTranslationService.translate(request);
-            } else {
-                return await RemoteTranslationService.translate(request);
-            }
+            // Only use ML Kit as requested
+            return await MLKitTranslationService.translate(request);
         } catch (error) {
-            console.error(`TranslationManager: ${this.activeStrategy} failed, trying fallback...`);
-
-            // Fallback logic
-            if (this.activeStrategy === 'LOCAL') {
-                return await RemoteTranslationService.translate(request);
-            } else {
-                throw error; // If remote fails, let the caller handle it or retry
-            }
+            console.error(`TranslationManager: MLKIT translation failed`, error);
+            throw error;
         }
     }
 

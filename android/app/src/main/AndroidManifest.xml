@@ -59,5 +59,13 @@
           android:exported="false"
           android:foregroundServiceType="mediaProjection" />
 
+      <!-- Native Libraries for AI Acceleration (S22 Ultra / Snapdragon) -->
+      <uses-native-library
+          android:name="libcdsprpc.so"
+          android:required="false" />
+      <uses-native-library
+          android:name="libOpenCL.so"
+          android:required="false" />
+
     </application>
 </manifest>
