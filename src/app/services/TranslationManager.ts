@@ -1,7 +1,7 @@
 import MLKitTranslationService from './MLKitTranslationService';
 import { TranslationRequest, TranslationResponse } from './RemoteTranslationService';
 
-export type TranslationStrategy = 'MLKIT';
+export type TranslationStrategy = 'MLKIT' | 'QWEN';
 
 class TranslationManager {
     private strategy: TranslationStrategy = 'MLKIT';
@@ -35,10 +35,28 @@ class TranslationManager {
         }
 
         try {
-            // Only use ML Kit as requested
-            return await MLKitTranslationService.translate(request);
+            const strategy = request.strategy || this.activeStrategy;
+
+            let response: TranslationResponse;
+            if (strategy === 'QWEN') {
+                const LocalTranslationService = require('./LocalTranslationService').default;
+                response = await LocalTranslationService.translate(request);
+            } else {
+                response = await MLKitTranslationService.translate(request);
+            }
+
+            if (request.saveHistory) {
+                const HistoryService = require('./HistoryService').default;
+                // No await here -> Fire and Forget to not block UI? 
+                // Alternatively await if we want to ensure it saves. Fire and forget is better for UX latency.
+                HistoryService.save(request, response, strategy).catch((err: any) =>
+                    console.error('TranslationManager: Background history save failed', err)
+                );
+            }
+
+            return response;
         } catch (error) {
-            console.error(`TranslationManager: MLKIT translation failed`, error);
+            console.error(`TranslationManager: Translation failed for strategy ${request.strategy}`, error);
             throw error;
         }
     }

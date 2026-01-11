@@ -9,6 +9,8 @@ export interface TranslationRequest {
     appName?: string;
     appCategory?: string;
     targetLanguage: string;
+    strategy?: 'MLKIT' | 'QWEN';
+    saveHistory?: boolean;
 }
 
 export interface TranslationResponse {
