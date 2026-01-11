@@ -21,7 +21,15 @@ export default function MainScreen({ onLogout }) {
     const [isChangingApp, setIsChangingApp] = useState(false);
     const [duration, setDuration] = useState('00:00');
     const [benchmarkResults, setBenchmarkResults] = useState([]);
+
     const [isBenchmarking, setIsBenchmarking] = useState(false);
+    const [translationMode, setTranslationMode] = useState('REALTIME'); // 'REALTIME' | 'SELECTION' | 'CAMERA'
+
+    const MODES = [
+        { id: 'REALTIME', label: '⚡ Realtime', desc: 'Dịch trực tiếp (ML Kit)' },
+        { id: 'SELECTION', label: '🖐️ Selection', desc: 'Chọn vùng dịch (Qwen)' },
+        { id: 'CAMERA', label: '📷 Camera', desc: 'Dịch qua Camera' },
+    ];
 
     // Khởi tạo service và subscribe state changes
     useEffect(() => {
@@ -218,98 +226,127 @@ export default function MainScreen({ onLogout }) {
                 )}
             </View>
 
-            {/* Screen Capture Controls */}
-            <View style={styles.captureSection}>
-                <Text style={styles.sectionTitle}>🎥 Screen Capture</Text>
+            {/* Mode Selector */}
+            <View style={styles.modeSection}>
+                <Text style={styles.sectionTitle}>🛠️ Chế độ dịch</Text>
+                <View style={styles.modeContainer}>
+                    {MODES.map((mode) => (
+                        <TouchableOpacity
+                            key={mode.id}
+                            style={[
+                                styles.modeButton,
+                                translationMode === mode.id && styles.modeButtonActive
+                            ]}
+                            onPress={() => setTranslationMode(mode.id)}
+                        >
+                            <Text style={[
+                                styles.modeLabel,
+                                translationMode === mode.id && styles.modeLabelActive
+                            ]}>
+                                {mode.label}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+                <Text style={styles.modeDescription}>
+                    {MODES.find(m => m.id === translationMode)?.desc}
+                </Text>
+            </View>
 
-                {/* Status Display */}
-                <View style={styles.statusContainer}>
-                    <View style={styles.statusRow}>
-                        <Text style={styles.statusLabel}>Nguồn:</Text>
-                        <Text style={[
-                            styles.statusValue,
-                            permissionGranted ? styles.statusSuccess : styles.statusError
-                        ]}>
-                            {permissionGranted ? '✅ Đã chọn' : '❌ Chưa chọn'}
-                        </Text>
-                    </View>
-                    <View style={styles.statusRow}>
-                        <Text style={styles.statusLabel}>Trạng thái:</Text>
-                        <View style={styles.statusValueContainer}>
-                            {isCapturing && <View style={styles.pulsingDot} />}
+            {/* Screen Capture Controls - Only show for REALTIME or SELECTION */}
+            {translationMode !== 'CAMERA' && (
+                <View style={styles.captureSection}>
+                    <Text style={styles.sectionTitle}>🎥 Screen Capture</Text>
+
+                    {/* Status Display */}
+                    <View style={styles.statusContainer}>
+                        <View style={styles.statusRow}>
+                            <Text style={styles.statusLabel}>Nguồn:</Text>
                             <Text style={[
                                 styles.statusValue,
-                                isCapturing ? styles.statusSuccess : styles.statusError
+                                permissionGranted ? styles.statusSuccess : styles.statusError
                             ]}>
-                                {isCapturing ? 'Đang capture' : 'Đã dừng'}
+                                {permissionGranted ? '✅ Đã chọn' : '❌ Chưa chọn'}
                             </Text>
                         </View>
-                    </View>
-                    {isCapturing && (
                         <View style={styles.statusRow}>
-                            <Text style={styles.statusLabel}>Thời gian:</Text>
-                            <Text style={styles.statusValue}>⏱️ {duration}</Text>
+                            <Text style={styles.statusLabel}>Trạng thái:</Text>
+                            <View style={styles.statusValueContainer}>
+                                {isCapturing && <View style={styles.pulsingDot} />}
+                                <Text style={[
+                                    styles.statusValue,
+                                    isCapturing ? styles.statusSuccess : styles.statusError
+                                ]}>
+                                    {isCapturing ? 'Đang capture' : 'Đã dừng'}
+                                </Text>
+                            </View>
+                        </View>
+                        {isCapturing && (
+                            <View style={styles.statusRow}>
+                                <Text style={styles.statusLabel}>Thời gian:</Text>
+                                <Text style={styles.statusValue}>⏱️ {duration}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Loading indicator when changing app */}
+                    {isChangingApp && (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="small" color="#4285F4" />
+                            <Text style={styles.loadingText}>Đang đổi app...</Text>
                         </View>
                     )}
+
+                    {/* Step 1: Select App Button - Show when no permission */}
+                    {!permissionGranted && !isCapturing && !isChangingApp && (
+                        <TouchableOpacity
+                            style={styles.buttonPrimary}
+                            onPress={() => handleSelectApp(false)}
+                        >
+                            <Text style={styles.buttonText}>
+                                {androidInfo?.supportsAppSelection
+                                    ? '🎯 Chọn App để Capture'
+                                    : '📺 Cấp quyền Capture'}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* Step 2: Control Buttons - Show after app selected */}
+                    {permissionGranted && !isChangingApp && (
+                        <>
+                            <View style={styles.buttonRow}>
+                                <TouchableOpacity
+                                    style={[styles.buttonStart, isCapturing && styles.buttonDisabled]}
+                                    onPress={handleStartCapture}
+                                    disabled={isCapturing}
+                                >
+                                    <Text style={styles.buttonText}>▶️ Bắt đầu</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.buttonStop, !isCapturing && styles.buttonDisabled]}
+                                    onPress={handleStopCapture}
+                                    disabled={!isCapturing}
+                                >
+                                    <Text style={styles.buttonText}>⏹️ Dừng</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Change App Button - Only show on Android 14+ */}
+                            {androidInfo?.supportsAppSelection && (
+                                <TouchableOpacity
+                                    style={styles.buttonChangeApp}
+                                    onPress={handleChangeApp}
+                                >
+                                    <Text style={styles.buttonChangeAppText}>
+                                        🔄 Đổi App Capture
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        </>
+                    )}
                 </View>
-
-                {/* Loading indicator when changing app */}
-                {isChangingApp && (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="small" color="#4285F4" />
-                        <Text style={styles.loadingText}>Đang đổi app...</Text>
-                    </View>
-                )}
-
-                {/* Step 1: Select App Button - Show when no permission */}
-                {!permissionGranted && !isCapturing && !isChangingApp && (
-                    <TouchableOpacity
-                        style={styles.buttonPrimary}
-                        onPress={() => handleSelectApp(false)}
-                    >
-                        <Text style={styles.buttonText}>
-                            {androidInfo?.supportsAppSelection
-                                ? '🎯 Chọn App để Capture'
-                                : '📺 Cấp quyền Capture'}
-                        </Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* Step 2: Control Buttons - Show after app selected */}
-                {permissionGranted && !isChangingApp && (
-                    <>
-                        <View style={styles.buttonRow}>
-                            <TouchableOpacity
-                                style={[styles.buttonStart, isCapturing && styles.buttonDisabled]}
-                                onPress={handleStartCapture}
-                                disabled={isCapturing}
-                            >
-                                <Text style={styles.buttonText}>▶️ Bắt đầu</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.buttonStop, !isCapturing && styles.buttonDisabled]}
-                                onPress={handleStopCapture}
-                                disabled={!isCapturing}
-                            >
-                                <Text style={styles.buttonText}>⏹️ Dừng</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Change App Button - Only show on Android 14+ */}
-                        {androidInfo?.supportsAppSelection && (
-                            <TouchableOpacity
-                                style={styles.buttonChangeApp}
-                                onPress={handleChangeApp}
-                            >
-                                <Text style={styles.buttonChangeAppText}>
-                                    🔄 Đổi App Capture
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-                    </>
-                )}
-            </View>
+            )}
 
             {/* Live Preview */}
             {latestFrame && (
@@ -692,5 +729,48 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    // Mode Selector Styles
+    modeSection: {
+        backgroundColor: '#fff',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 16,
+    },
+    modeContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#f1f3f4',
+        borderRadius: 8,
+        padding: 4,
+        marginBottom: 8,
+    },
+    modeButton: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 6,
+    },
+    modeButtonActive: {
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1,
+        elevation: 2,
+    },
+    modeLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#666',
+    },
+    modeLabelActive: {
+        color: '#4285F4',
+        fontWeight: '700',
+    },
+    modeDescription: {
+        fontSize: 12,
+        color: '#888',
+        fontStyle: 'italic',
+        textAlign: 'center',
     }
 });
