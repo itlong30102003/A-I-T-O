@@ -59,6 +59,12 @@
           android:exported="false"
           android:foregroundServiceType="mediaProjection" />
 
+      <!-- Overlay Service -->
+      <service
+          android:name=".overlay.OverlayService"
+          android:enabled="true"
+          android:exported="false" />
+
       <!-- Native Libraries for AI Acceleration (S22 Ultra / Snapdragon) -->
       <uses-native-library
           android:name="libcdsprpc.so"

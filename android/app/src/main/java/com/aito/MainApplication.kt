@@ -9,6 +9,7 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.aito.screencapture.ScreenCapturePackage
 import com.aito.textdetection.TextDetectionPackage
 import com.aito.device.DevicePackage
+import com.aito.overlay.OverlayPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -21,6 +22,7 @@ class MainApplication : Application(), ReactApplication {
           add(ScreenCapturePackage())
           add(TextDetectionPackage())
           add(DevicePackage())
+          add(OverlayPackage())
         },
     )
   }

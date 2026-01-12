@@ -14,6 +14,7 @@ import { screenCaptureService } from '../services/ScreenCaptureService';
 import { ocrPipelineService } from '../services/OCRPipelineService';
 import benchmarkService from '../services/BenchmarkService';
 import TranslationManager from '../services/TranslationManager';
+import { overlayService } from '../services/OverlayService';
 
 export default function MainScreen({ onLogout }) {
     const [user, setUser] = useState(null);
@@ -183,6 +184,27 @@ export default function MainScreen({ onLogout }) {
             Alert.alert('Lỗi Benchmark', error.message);
         } finally {
             setIsBenchmarking(false);
+        }
+    };
+
+    // Test Overlay
+    const handleOverlayTest = async () => {
+        const hasPermission = await overlayService.checkPermission();
+        if (!hasPermission) {
+            Alert.alert(
+                'Cần quyền Overlay',
+                'Ứng dụng cần quyền hiển thị trên ứng dụng khác để chạy Overlay.',
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Cấp quyền', onPress: () => overlayService.requestPermission() }
+                ]
+            );
+            return;
+        }
+
+        const success = await overlayService.start('Hello Overlay!');
+        if (!success) {
+            Alert.alert('Lỗi', 'Không thể khởi động Overlay');
         }
     };
 
@@ -641,6 +663,18 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     logoutText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    overlayButton: {
+        backgroundColor: '#FF9800',
+        padding: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    overlayButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
