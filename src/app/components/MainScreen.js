@@ -419,6 +419,11 @@ export default function MainScreen({ onLogout }) {
                     )}
                 </TouchableOpacity>
 
+                {/* Overlay Test Button */}
+                <TouchableOpacity style={styles.overlayButton} onPress={handleOverlayTest}>
+                    <Text style={styles.overlayButtonText}>🖼️ Test Overlay "Hello"</Text>
+                </TouchableOpacity>
+
                 {benchmarkResults.length > 0 && (
                     <View style={styles.resultsContainer}>
                         {benchmarkResults.map((res) => (
