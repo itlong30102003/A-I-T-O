@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -8,11 +8,29 @@ import {
     ScrollView,
     Image,
     ActivityIndicator,
+    Modal,
+    FlatList,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import { screenCaptureService } from '../services/ScreenCaptureService';
 import { ocrPipelineService } from '../services/OCRPipelineService';
 import TranslationManager from '../services/TranslationManager';
+import { overlayService } from '../services/OverlayService';
+
+const LANGUAGES = {
+    source: [
+        { code: 'auto', label: '✨ Auto Detect' },
+        { code: 'en', label: '🇺🇸 English' },
+        { code: 'zh', label: '🇨🇳 Chinese' },
+        { code: 'ja', label: '🇯🇵 Japanese' },
+        { code: 'ko', label: '🇰🇷 Korean' },
+        { code: 'vi', label: '🇻🇳 Vietnamese' },
+    ],
+    target: [
+        { code: 'vi', label: '🇻🇳 Vietnamese' },
+        { code: 'en', label: '🇺🇸 English' },
+    ]
+};
 
 export default function MainScreen({ onLogout }) {
     const [user, setUser] = useState(null);
@@ -20,6 +38,11 @@ export default function MainScreen({ onLogout }) {
     const [isChangingApp, setIsChangingApp] = useState(false);
     const [duration, setDuration] = useState('00:00');
     const [translationMode, setTranslationMode] = useState('REALTIME'); // 'REALTIME' | 'SELECTION' | 'CAMERA'
+
+    // Language Selection State
+    const [sourceLang, setSourceLang] = useState(LANGUAGES.source[0]);
+    const [targetLang, setTargetLang] = useState(LANGUAGES.target[0]);
+    const [showLanguageModal, setShowLanguageModal] = useState(null); // 'source' | 'target' | null
 
     const MODES = [
         { id: 'REALTIME', label: '⚡ Realtime', desc: 'Dịch trực tiếp (ML Kit)' },
@@ -54,27 +77,92 @@ export default function MainScreen({ onLogout }) {
         };
     }, []);
 
-    // Update duration and handle OCR pipeline state
+    // Update duration and handle OCR pipeline state & Realtime Translation
     useEffect(() => {
         let interval;
+        let ocrUnsubscribe;
+
         if (captureState.isCapturing) {
             // Start duration timer
             interval = setInterval(() => {
                 setDuration(screenCaptureService.formatDuration());
             }, 1000);
 
-            // Start OCR Pipeline (default latin for now)
-            ocrPipelineService.start('latin');
+            // Start OCR Pipeline
+            // If source is 'auto' or 'en', we can use 'latin' script for now as a default, 
+            // but for proper CJK support we might need to handle script types better.
+            // For now, defaulting to 'latin' widely works for detection, or specific if selecting C/J/K.
+            const script = ['zh', 'ja', 'ko'].includes(sourceLang.code) ? 'chinese' : 'latin';
+            // Note: ML Kit Text Recognition v2 automatically handles most scripts in 'Default'.
+            // 'chinese' script type might be needed if using specific Chinese/Korean/Japanese models.
+
+            ocrPipelineService.start(script);
+
+            if (translationMode === 'REALTIME') {
+                // Subscribe to OCR results for Realtime Translation
+                ocrUnsubscribe = ocrPipelineService.onResult(async (result) => {
+                    if (!result.blocks || result.blocks.length === 0) return;
+
+                    try {
+                        // 1. Prepare items for translation
+                        const itemsToTranslate = result.blocks.map((block, index) => ({
+                            id: `block_${index}`,
+                            text: block.text
+                        }));
+
+                        // 2. Translate
+                        const response = await TranslationManager.translate({
+                            text: '', // Batch mode uses items
+                            items: itemsToTranslate,
+                            sourceLanguage: sourceLang.code === 'auto' ? undefined : sourceLang.code,
+                            targetLanguage: targetLang.code,
+                            strategy: 'MLKIT', // Force MLKIT for realtime speed
+                            saveHistory: false // Don't spam history
+                        });
+
+                        // 3. Map translations back to blocks for Overlay
+                        const translatedBlocks = result.blocks.map((block, index) => {
+                            const translation = response.results?.find(r => r.id === `block_${index}`);
+                            return {
+                                ...block,
+                                text: translation ? translation.t : block.text // Replace text with translation
+                            };
+                        });
+
+                        // --- DEBUGGING ---
+                        console.log('--- Realtime OCR Result ---');
+                        result.blocks.forEach((b, i) => {
+                            console.log(`Block ${i} [${b.boundingBox.x}, ${b.boundingBox.y}, ${b.boundingBox.width}, ${b.boundingBox.height}]: "${b.text}"`);
+                        });
+                        console.log('--- Translated Blocks ---');
+                        translatedBlocks.forEach((b, i) => {
+                            console.log(`Block ${i}: "${b.text}"`);
+                        });
+                        // -----------------
+
+                        // 4. Send to Overlay Service
+                        // Note: We need to implement startWithBlocks in OverlayService to verify
+                        // await overlayService.start(JSON.stringify(translatedBlocks));
+
+                    } catch (error) {
+                        console.error('Realtime Translation Error:', error);
+                    }
+                });
+            }
+
         } else {
             // Stop OCR Pipeline
             ocrPipelineService.stop();
+            if (ocrUnsubscribe) ocrUnsubscribe();
+            overlayService.stop(); // Clear overlay when stopped
         }
 
         return () => {
             if (interval) clearInterval(interval);
             ocrPipelineService.stop();
+            if (ocrUnsubscribe) ocrUnsubscribe();
         };
-    }, [captureState.isCapturing]);
+    }, [captureState.isCapturing, translationMode, sourceLang, targetLang]);
 
     const handleLogout = async () => {
         try {
@@ -104,7 +192,7 @@ export default function MainScreen({ onLogout }) {
             } else {
                 // Tự động bắt đầu capture sau khi chọn app
                 try {
-                    await screenCaptureService.startCapture({ intervalMs: 500 });
+                    await screenCaptureService.startCapture({ intervalMs: 1000 }); // Slower interval for realtime to avoid backlog
                     // Không hiện alert - để user tiếp tục dùng app đã chọn
                 } catch (captureError) {
                     Alert.alert('Lỗi', captureError.message || 'Không thể bắt đầu capture');
@@ -144,7 +232,7 @@ export default function MainScreen({ onLogout }) {
         }
 
         try {
-            await screenCaptureService.startCapture({ intervalMs: 500 });
+            await screenCaptureService.startCapture({ intervalMs: 1000 });
         } catch (error) {
             Alert.alert('Lỗi khởi động', error.message || 'Không thể bắt đầu capture.', [{ text: 'OK' }]);
         }
@@ -159,6 +247,48 @@ export default function MainScreen({ onLogout }) {
         }
     };
 
+    const renderLanguageModal = () => (
+        <Modal
+            visible={!!showLanguageModal}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowLanguageModal(null)}
+        >
+            <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>
+                        {showLanguageModal === 'source' ? 'Chọn ngôn ngữ nguồn' : 'Chọn ngôn ngữ đích'}
+                    </Text>
+                    <FlatList
+                        data={showLanguageModal === 'source' ? LANGUAGES.source : LANGUAGES.target}
+                        keyExtractor={(item) => item.code}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                style={styles.languageOption}
+                                onPress={() => {
+                                    if (showLanguageModal === 'source') setSourceLang(item);
+                                    else setTargetLang(item);
+                                    setShowLanguageModal(null);
+                                }}
+                            >
+                                <Text style={styles.languageOptionText}>{item.label}</Text>
+                                {((showLanguageModal === 'source' && sourceLang.code === item.code) ||
+                                    (showLanguageModal === 'target' && targetLang.code === item.code)) && (
+                                        <Text style={styles.checkMark}>✓</Text>
+                                    )}
+                            </TouchableOpacity>
+                        )}
+                    />
+                    <TouchableOpacity
+                        style={styles.closeButton}
+                        onPress={() => setShowLanguageModal(null)}
+                    >
+                        <Text style={styles.closeButtonText}>Đóng</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </Modal>
+    );
 
 
     // Destructure state for easier access
@@ -227,6 +357,31 @@ export default function MainScreen({ onLogout }) {
                     {MODES.find(m => m.id === translationMode)?.desc}
                 </Text>
             </View>
+
+            {/* Language Selector */}
+            <View style={styles.languageSection}>
+                <Text style={styles.sectionTitle}>🌐 Ngôn ngữ</Text>
+                <View style={styles.languageRow}>
+                    <TouchableOpacity
+                        style={styles.languageButton}
+                        onPress={() => setShowLanguageModal('source')}
+                    >
+                        <Text style={styles.languageLabel}>Nguồn</Text>
+                        <Text style={styles.languageValue}>{sourceLang.label}</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.arrow}>➡️</Text>
+
+                    <TouchableOpacity
+                        style={styles.languageButton}
+                        onPress={() => setShowLanguageModal('target')}
+                    >
+                        <Text style={styles.languageLabel}>Đích</Text>
+                        <Text style={styles.languageValue}>{targetLang.label}</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+
 
             {/* Screen Capture Controls - Only show for REALTIME or SELECTION */}
             {translationMode !== 'CAMERA' && (
@@ -354,6 +509,8 @@ export default function MainScreen({ onLogout }) {
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                 <Text style={styles.logoutText}>🚪 Đăng xuất</Text>
             </TouchableOpacity>
+
+            {renderLanguageModal()}
         </ScrollView>
     );
 }
@@ -622,5 +779,89 @@ const styles = StyleSheet.create({
         color: '#888',
         fontStyle: 'italic',
         textAlign: 'center',
-    }
+    },
+    // Language Selector Styles
+    languageSection: {
+        backgroundColor: '#fff',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 16,
+    },
+    languageRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    languageButton: {
+        flex: 1,
+        backgroundColor: '#f8f9fa',
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#eee',
+    },
+    languageLabel: {
+        fontSize: 12,
+        color: '#888',
+        marginBottom: 4,
+    },
+    languageValue: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+    },
+    arrow: {
+        fontSize: 20,
+        marginHorizontal: 12,
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 16,
+        maxHeight: '50%',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 16,
+        textAlign: 'center',
+        color: '#333',
+    },
+    languageOption: {
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    languageOptionText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    checkMark: {
+        color: '#4285F4',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    closeButton: {
+        marginTop: 16,
+        backgroundColor: '#f1f3f4',
+        padding: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        fontSize: 16,
+        color: '#333',
+        fontWeight: '600',
+    },
 });

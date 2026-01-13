@@ -39,15 +39,15 @@ class OverlayService {
     }
 
     /**
-     * Start the overlay service with the given text.
-     * @param {string} text - The text to display on the overlay.
+     * Start the overlay service with the given data (JSON string of blocks or text).
+     * @param {string} data - JSON string containing text blocks or simple text.
      */
-    async start(text = 'Hello World') {
+    async start(data: string) {
         if (!this.isSupported) return;
         try {
             const hasPermission = await this.checkPermission();
             if (hasPermission) {
-                OverlayModule.startOverlay(text);
+                OverlayModule.startOverlay(data);
                 return true;
             } else {
                 console.warn('Overlay permission not granted');
