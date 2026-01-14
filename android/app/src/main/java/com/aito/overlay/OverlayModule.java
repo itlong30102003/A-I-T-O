@@ -53,8 +53,10 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
 
     @ReactMethod
     public void startOverlay(String text) {
+        // Use static reference to avoid TransactionTooLarge for large data
+        OverlayService.pendingBlocksJson = text;
+        
         Intent intent = new Intent(getReactApplicationContext(), OverlayService.class);
-        intent.putExtra("text", text);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getReactApplicationContext().startForegroundService(intent);
         } else {

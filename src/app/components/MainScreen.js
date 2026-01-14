@@ -141,8 +141,7 @@ export default function MainScreen({ onLogout }) {
                         // -----------------
 
                         // 4. Send to Overlay Service
-                        // Note: We need to implement startWithBlocks in OverlayService to verify
-                        // await overlayService.start(JSON.stringify(translatedBlocks));
+                        await overlayService.start(JSON.stringify(translatedBlocks));
 
                     } catch (error) {
                         console.error('Realtime Translation Error:', error);

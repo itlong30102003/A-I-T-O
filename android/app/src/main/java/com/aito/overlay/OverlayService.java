@@ -1,5 +1,8 @@
 package com.aito.overlay;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.PixelFormat;
@@ -8,11 +11,17 @@ import android.os.IBinder;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.util.Log;
+import androidx.core.app.NotificationCompat;
 
 public class OverlayService extends Service {
     private WindowManager windowManager;
     private OverlayView overlayView;
     private static final String TAG = "OverlayService";
+    private static final String CHANNEL_ID = "overlay_channel";
+    private static final int NOTIFICATION_ID = 2001;
+    
+    // Static reference to avoid TransactionTooLarge when passing large data via Intent
+    public static String pendingBlocksJson = null;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -23,6 +32,10 @@ public class OverlayService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "Overlay Service Created");
+
+        // Start as foreground service (required for Android 8+)
+        createNotificationChannel();
+        startForeground(NOTIFICATION_ID, createNotification());
 
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         
@@ -58,11 +71,44 @@ public class OverlayService extends Service {
         }
     }
 
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Translation Overlay",
+                    NotificationManager.IMPORTANCE_LOW
+            );
+            channel.setDescription("Shows translated text overlay");
+            channel.setShowBadge(false);
+            
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    private Notification createNotification() {
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Translation Overlay Active")
+                .setContentText("Displaying translated text")
+                .setSmallIcon(android.R.drawable.ic_menu_view)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setOngoing(true)
+                .build();
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && intent.hasExtra("text")) {
+        // First check static reference (preferred method to avoid TransactionTooLarge)
+        if (pendingBlocksJson != null && overlayView != null) {
+            overlayView.updateBlocks(pendingBlocksJson);
+            pendingBlocksJson = null; // Clear after use
+        }
+        // Fallback to intent extras for backward compatibility (small data only)
+        else if (intent != null && intent.hasExtra("text")) {
             String jsonString = intent.getStringExtra("text");
-            if (overlayView != null) {
+            if (overlayView != null && jsonString != null) {
                 overlayView.updateBlocks(jsonString);
             }
         }
