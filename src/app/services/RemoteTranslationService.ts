@@ -8,7 +8,8 @@ export interface TranslationRequest {
     items?: BatchItem[]; // New: support for batch
     appName?: string;
     appCategory?: string;
-    targetLanguage: string;
+    sourceLanguage?: string;  // Source language code (e.g. 'en', 'zh', 'auto')
+    targetLanguage: string;   // Target language code (e.g. 'vi', 'en')
     strategy?: 'MLKIT' | 'QWEN';
     saveHistory?: boolean;
 }

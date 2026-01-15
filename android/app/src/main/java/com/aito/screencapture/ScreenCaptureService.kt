@@ -21,6 +21,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.content.pm.ServiceInfo
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.WindowManager
@@ -84,24 +85,31 @@ class ScreenCaptureService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "ScreenCaptureService onStartCommand")
         
-        // Start as foreground service
-        startForeground(NOTIFICATION_ID, createNotification())
+        // Start as foreground service with mediaProjection type for Android 10+ (API 29+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, createNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification())
+        }
         
         // Initialize MediaProjection
         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         
         if (resultData != null) {
+            Log.d(TAG, "ResultData is valid, creating MediaProjection. ResultCode: $resultCode")
             mediaProjection = projectionManager.getMediaProjection(resultCode, resultData!!)
+            Log.d(TAG, "MediaProjection created: $mediaProjection")
+            
             mediaProjection?.registerCallback(object : MediaProjection.Callback() {
                 override fun onStop() {
-                    Log.d(TAG, "MediaProjection stopped")
+                    Log.d(TAG, "MediaProjection stopped by system")
                     stopCapture()
                 }
             }, handler)
             
             startCapture()
         } else {
-            Log.e(TAG, "resultData is null, cannot start capture")
+            Log.e(TAG, "resultData is null, cannot start capture. Make sure requestPermission was successful.")
             stopSelf()
         }
         
@@ -153,17 +161,19 @@ class ScreenCaptureService : Service() {
     
     private fun startCapture() {
         if (isCapturing) {
-            Log.d(TAG, "Already capturing")
+            Log.d(TAG, "Already capturing, skipping startCapture")
             return
         }
         
-        Log.d(TAG, "Starting capture: ${screenWidth}x${screenHeight}")
+        Log.d(TAG, "Starting capture loop: ${screenWidth}x${screenHeight} (density: $screenDensity)")
         
         // Create ImageReader
         imageReader = ImageReader.newInstance(
             screenWidth, screenHeight,
             PixelFormat.RGBA_8888, 2
         )
+        
+        Log.d(TAG, "ImageReader surface: ${imageReader?.surface}")
         
         // Create VirtualDisplay
         virtualDisplay = mediaProjection?.createVirtualDisplay(
@@ -174,6 +184,13 @@ class ScreenCaptureService : Service() {
             null, handler
         )
         
+        if (virtualDisplay == null) {
+            Log.e(TAG, "Failed to create VirtualDisplay!")
+            stopSelf()
+            return
+        }
+        
+        Log.d(TAG, "VirtualDisplay created: $virtualDisplay")
         isCapturing = true
         
         // Start capture loop
@@ -198,47 +215,59 @@ class ScreenCaptureService : Service() {
             Log.e(TAG, "Error acquiring image: ${e.message}")
             null
         }
-        
-        image?.use { img ->
-            try {
-                var bitmap = imageToBitmap(img)
-                if (bitmap != null) {
-                    // Apply crop region if set
-                    val region = cropRegion
-                    if (region != null) {
-                        bitmap = cropBitmap(bitmap, region)
-                    }
-                    
-                    // Calculate hash to detect changes (sample pixels for speed)
-                    val currentHash = calculateBitmapHash(bitmap)
-                    
-                    // Only update if content changed
-                    if (currentHash != previousFrameHash) {
-                        previousFrameHash = currentHash
-                        
-                        // Use single file for smooth preview (reuse same path)
-                        val tempFile = File(cacheDir, "live_capture.jpg")
-                        FileOutputStream(tempFile).use { out ->
-                            // Use JPEG for faster encoding/smaller size
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+
+        if (image != null) {
+            image.use { img ->
+                try {
+                    var bitmap = imageToBitmap(img)
+                    if (bitmap != null) {
+                        // Apply crop region if set
+                        val region = cropRegion
+                        if (region != null) {
+                            bitmap = cropBitmap(bitmap, region)
                         }
                         
-                        currentFramePath = tempFile.absolutePath
+                        // Calculate hash to detect changes (sample pixels for speed)
+                        val currentHash = calculateBitmapHash(bitmap)
                         
-                        // Callback with file path + timestamp to force refresh
-                        onFrameCaptured?.invoke(tempFile.absolutePath)
+                        // Only update if content changed
+                        if (currentHash != previousFrameHash) {
+                            previousFrameHash = currentHash
+                            
+                            // Use single file for smooth preview (reuse same path)
+                            val tempFile = File(cacheDir, "live_capture.jpg")
+                            FileOutputStream(tempFile).use { out ->
+                                // Use JPEG for faster encoding/smaller size
+                                bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out)
+                            }
+                            
+                            currentFramePath = tempFile.absolutePath
+                            
+                            // Callback with file path + timestamp to force refresh
+                            onFrameCaptured?.invoke(tempFile.absolutePath)
+                            
+                            Log.d(TAG, "Frame #${statsFrameCount++} sent to JS. Path: ${tempFile.absoluteFile}")
+                        }
                         
-                        Log.d(TAG, "Frame updated (hash: $currentHash)")
+                        // Clean up bitmap
+                        bitmap.recycle()
+                    } else {
+                        Log.e(TAG, "Failed to convert image to bitmap")
                     }
-                    
-                    // Clean up bitmap
-                    bitmap.recycle()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing image: ${e.message}")
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error processing image: ${e.message}")
+            }
+        } else {
+            // Log once every 10 attempts if image is null to avoid spam
+            if (statsNullCount++ % 10 == 0) {
+                Log.w(TAG, "No image acquired from ImageReader (Total nulls: $statsNullCount)")
             }
         }
     }
+
+    private var statsFrameCount = 0
+    private var statsNullCount = 0
     
     /**
      * Calculate a fast hash of bitmap by sampling pixels
@@ -304,6 +333,9 @@ class ScreenCaptureService : Service() {
         Log.d(TAG, "Stopping capture")
         isCapturing = false
         handler?.removeCallbacks(captureRunnable)
+        previousFrameHash = 0 // Reset hash to force first frame on next start
+        statsFrameCount = 0
+        statsNullCount = 0
         
         virtualDisplay?.release()
         virtualDisplay = null

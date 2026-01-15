@@ -16,6 +16,7 @@ import { screenCaptureService } from '../services/ScreenCaptureService';
 import { ocrPipelineService } from '../services/OCRPipelineService';
 import TranslationManager from '../services/TranslationManager';
 import { overlayService } from '../services/OverlayService';
+import { realtimePipelineService } from '../services/RealtimePipelineService';
 
 const LANGUAGES = {
     source: [
@@ -68,7 +69,10 @@ export default function MainScreen({ onLogout }) {
         screenCaptureService.initialize();
 
         // Subscribe to state changes
-        const unsubscribe = screenCaptureService.onStateChange(setCaptureState);
+        const unsubscribe = screenCaptureService.onStateChange((state) => {
+            console.log('MainScreen: Capture State Update ->', state.isCapturing ? 'CAPTURING' : 'STOPPED');
+            setCaptureState(state);
+        });
 
         // Cleanup on unmount
         return () => {
@@ -80,88 +84,60 @@ export default function MainScreen({ onLogout }) {
     // Update duration and handle OCR pipeline state & Realtime Translation
     useEffect(() => {
         let interval;
-        let ocrUnsubscribe;
+        let isActive = true;
 
-        if (captureState.isCapturing) {
+        const startPipelines = async () => {
+            if (!captureState.isCapturing || !isActive) {
+                console.log('MainScreen: Skip pipeline start (not capturing or inactive)');
+                return;
+            }
+
+            console.error(`MainScreen: Starting pipelines (Mode: ${translationMode}, Lang: ${sourceLang.code} -> ${targetLang.code})`);
+
             // Start duration timer
             interval = setInterval(() => {
                 setDuration(screenCaptureService.formatDuration());
             }, 1000);
 
-            // Start OCR Pipeline
-            // If source is 'auto' or 'en', we can use 'latin' script for now as a default, 
-            // but for proper CJK support we might need to handle script types better.
-            // For now, defaulting to 'latin' widely works for detection, or specific if selecting C/J/K.
             const script = ['zh', 'ja', 'ko'].includes(sourceLang.code) ? 'chinese' : 'latin';
-            // Note: ML Kit Text Recognition v2 automatically handles most scripts in 'Default'.
-            // 'chinese' script type might be needed if using specific Chinese/Korean/Japanese models.
-
-            ocrPipelineService.start(script);
 
             if (translationMode === 'REALTIME') {
-                // Subscribe to OCR results for Realtime Translation
-                ocrUnsubscribe = ocrPipelineService.onResult(async (result) => {
-                    if (!result.blocks || result.blocks.length === 0) return;
-
-                    try {
-                        // 1. Prepare items for translation
-                        const itemsToTranslate = result.blocks.map((block, index) => ({
-                            id: `block_${index}`,
-                            text: block.text
-                        }));
-
-                        // 2. Translate
-                        const response = await TranslationManager.translate({
-                            text: '', // Batch mode uses items
-                            items: itemsToTranslate,
-                            sourceLanguage: sourceLang.code === 'auto' ? undefined : sourceLang.code,
-                            targetLanguage: targetLang.code,
-                            strategy: 'MLKIT', // Force MLKIT for realtime speed
-                            saveHistory: false // Don't spam history
-                        });
-
-                        // 3. Map translations back to blocks for Overlay
-                        const translatedBlocks = result.blocks.map((block, index) => {
-                            const translation = response.results?.find(r => r.id === `block_${index}`);
-                            return {
-                                ...block,
-                                text: translation ? translation.t : block.text // Replace text with translation
-                            };
-                        });
-
-                        // --- DEBUGGING ---
-                        console.log('--- Realtime OCR Result ---');
-                        result.blocks.forEach((b, i) => {
-                            console.log(`Block ${i} [${b.boundingBox.x}, ${b.boundingBox.y}, ${b.boundingBox.width}, ${b.boundingBox.height}]: "${b.text}"`);
-                        });
-                        console.log('--- Translated Blocks ---');
-                        translatedBlocks.forEach((b, i) => {
-                            console.log(`Block ${i}: "${b.text}"`);
-                        });
-                        // -----------------
-
-                        // 4. Send to Overlay Service
-                        await overlayService.start(JSON.stringify(translatedBlocks));
-
-                    } catch (error) {
-                        console.error('Realtime Translation Error:', error);
-                    }
+                console.error('MainScreen: --> Realtime Pipeline Start');
+                realtimePipelineService.start({
+                    script,
+                    sourceLanguage: sourceLang.code,
+                    targetLanguage: targetLang.code,
+                    debounceMs: 250,
+                    maxPendingOCR: 2,
+                    maxPendingTranslation: 2,
                 });
+            } else {
+                console.error('MainScreen: --> OCR Pipeline Start (Selection Mode)');
+                ocrPipelineService.start(script);
             }
+        };
 
+        if (captureState.isCapturing) {
+            startPipelines();
         } else {
-            // Stop OCR Pipeline
+            realtimePipelineService.stop();
             ocrPipelineService.stop();
-            if (ocrUnsubscribe) ocrUnsubscribe();
-            overlayService.stop(); // Clear overlay when stopped
+            overlayService.stop();
         }
 
         return () => {
+            isActive = false;
             if (interval) clearInterval(interval);
-            ocrPipelineService.stop();
-            if (ocrUnsubscribe) ocrUnsubscribe();
+            // Don't stop if we are just updating config (handled by .start() logic)
+            // Only stop if we are actually stopping capture
+            if (!screenCaptureService.state.isCapturing) {
+                realtimePipelineService.stop();
+                ocrPipelineService.stop();
+            }
         };
-    }, [captureState.isCapturing, translationMode, sourceLang, targetLang]);
+    }, [captureState.isCapturing, translationMode, sourceLang.code, targetLang.code]);
+
+
 
     const handleLogout = async () => {
         try {
@@ -227,6 +203,20 @@ export default function MainScreen({ onLogout }) {
     const handleStartCapture = async () => {
         if (!captureState.permissionGranted) {
             Alert.alert('Chưa chọn nguồn', 'Vui lòng chọn app trước khi bắt đầu!', [{ text: 'OK' }]);
+            return;
+        }
+
+        // Check overlay permission
+        const hasOverlayPermission = await overlayService.checkPermission();
+        if (!hasOverlayPermission) {
+            Alert.alert(
+                'Quyền Overlay',
+                'Ứng dụng cần quyền "Hiển thị trên các ứng dụng khác" để hiển thị bản dịch.',
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Cấp quyền', onPress: () => overlayService.requestPermission() }
+                ]
+            );
             return;
         }
 
