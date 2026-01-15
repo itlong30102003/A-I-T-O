@@ -11,6 +11,7 @@ import android.os.IBinder;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.util.Log;
+import android.content.pm.ServiceInfo;
 import androidx.core.app.NotificationCompat;
 
 public class OverlayService extends Service {
@@ -35,7 +36,11 @@ public class OverlayService extends Service {
 
         // Start as foreground service (required for Android 8+)
         createNotificationChannel();
-        startForeground(NOTIFICATION_ID, createNotification());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIFICATION_ID, createNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification());
+        }
 
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         

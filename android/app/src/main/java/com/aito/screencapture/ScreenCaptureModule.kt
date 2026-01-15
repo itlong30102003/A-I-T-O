@@ -197,16 +197,33 @@ class ScreenCaptureModule(reactContext: ReactApplicationContext) :
             val serviceIntent = Intent(context, ScreenCaptureService::class.java)
             context.stopService(serviceIntent)
             
+            // Full Reset
             ScreenCaptureService.onFrameCaptured = null
             ScreenCaptureService.resultData = null
             ScreenCaptureService.resultCode = Activity.RESULT_CANCELED
+            ScreenCaptureService.mediaProjection = null
             ScreenCaptureService.cropRegion = null
+            pendingPromise = null
             
-            Log.d(TAG, "Screen capture stopped")
+            Log.d(TAG, "Screen capture fully stopped and state reset")
             promise.resolve(true)
             
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping capture: ${e.message}")
+            promise.reject("ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun resetState(promise: Promise) {
+        try {
+            ScreenCaptureService.resultData = null
+            ScreenCaptureService.resultCode = Activity.RESULT_CANCELED
+            ScreenCaptureService.mediaProjection = null
+            pendingPromise = null
+            Log.d(TAG, "Native state force-reset")
+            promise.resolve(true)
+        } catch (e: Exception) {
             promise.reject("ERROR", e.message)
         }
     }

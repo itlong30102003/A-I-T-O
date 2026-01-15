@@ -103,6 +103,9 @@ class ScreenCaptureService {
         }
 
         try {
+            // Force reset native state on init to fix stuck permissions
+            await ScreenCaptureModule.resetState();
+
             const info = await ScreenCaptureModule.getAndroidVersion();
             this.updateState({ androidInfo: info });
             return info;

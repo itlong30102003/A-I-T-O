@@ -210,9 +210,11 @@ class ScreenCaptureService : Service() {
     
     private fun captureFrame() {
         val image: Image? = try {
-            imageReader?.acquireLatestImage()
+            // acquireLatestImage can return null frequently on emulators if no change detected
+            // acquireNextImage is more reliable for catching the first frame
+            imageReader?.acquireNextImage()
         } catch (e: Exception) {
-            Log.e(TAG, "Error acquiring image: ${e.message}")
+            // Buffer might be empty, that's fine
             null
         }
 

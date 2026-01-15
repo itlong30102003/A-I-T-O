@@ -5,6 +5,7 @@
     <!-- Screen Capture Permissions -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     
     <!-- Overlay Permission -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -63,7 +64,11 @@
       <service
           android:name=".overlay.OverlayService"
           android:enabled="true"
-          android:exported="false" />
+          android:exported="false"
+          android:foregroundServiceType="specialUse">
+          <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_TYPE"
+              android:value="Displaying translated text overlays on top of other applications in real-time." />
+      </service>
 
       <!-- Native Libraries for AI Acceleration (S22 Ultra / Snapdragon) -->
       <uses-native-library

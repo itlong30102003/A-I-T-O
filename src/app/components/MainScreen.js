@@ -92,7 +92,7 @@ export default function MainScreen({ onLogout }) {
                 return;
             }
 
-            console.error(`MainScreen: Starting pipelines (Mode: ${translationMode}, Lang: ${sourceLang.code} -> ${targetLang.code})`);
+            console.log(`MainScreen: Starting pipelines (Mode: ${translationMode}, Lang: ${sourceLang.code} -> ${targetLang.code})`);
 
             // Start duration timer
             interval = setInterval(() => {

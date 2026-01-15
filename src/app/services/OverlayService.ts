@@ -60,6 +60,16 @@ class OverlayService {
     }
 
     /**
+     * Update existing overlay with new blocks.
+     * @param {any[]} blocks - Array of text blocks with translation.
+     */
+    updateOverlay(blocks: any[]) {
+        if (!this.isSupported) return;
+        const json = JSON.stringify(blocks);
+        this.start(json);
+    }
+
+    /**
      * Stop the overlay service.
      */
     stop() {
