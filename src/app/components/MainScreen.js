@@ -44,6 +44,8 @@ export default function MainScreen({ onLogout }) {
     const [sourceLang, setSourceLang] = useState(LANGUAGES.source[0]);
     const [targetLang, setTargetLang] = useState(LANGUAGES.target[0]);
     const [showLanguageModal, setShowLanguageModal] = useState(null); // 'source' | 'target' | null
+    const [showResultModal, setShowResultModal] = useState(false);
+    const [selectedText, setSelectedText] = useState('Nội dung sẽ được dịch ở đây...');
 
     const MODES = [
         { id: 'REALTIME', label: '⚡ Realtime', desc: 'Dịch trực tiếp (ML Kit)' },
@@ -74,9 +76,16 @@ export default function MainScreen({ onLogout }) {
             setCaptureState(state);
         });
 
+        // Subscribe to logo clicks
+        const unsubsLogo = overlayService.onLogoClick(() => {
+            console.log('MainScreen: Logo clicked!');
+            setShowResultModal(true);
+        });
+
         // Cleanup on unmount
         return () => {
             unsubscribe();
+            unsubsLogo();
             screenCaptureService.cleanup();
         };
     }, []);
@@ -279,6 +288,36 @@ export default function MainScreen({ onLogout }) {
         </Modal>
     );
 
+    const renderResultModal = () => (
+        <Modal
+            visible={showResultModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowResultModal(false)}
+        >
+            <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowResultModal(false)}
+            >
+                <View style={styles.resultPanel}>
+                    <View style={styles.resultHeader}>
+                        <Text style={styles.resultTitle}>📝 Bản dịch Qwen</Text>
+                        <TouchableOpacity onPress={() => setShowResultModal(false)}>
+                            <Text style={styles.closeIcon}>✕</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <ScrollView style={styles.resultContent}>
+                        <Text style={styles.translatedTextContent}>{selectedText}</Text>
+                    </ScrollView>
+                    <View style={styles.resultFooter}>
+                        <Text style={styles.resultMeta}>💡 Model: Qwen2.5-1.5B (Local)</Text>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        </Modal>
+    );
+
 
     // Destructure state for easier access
     const { isCapturing, permissionGranted, latestFrame, androidInfo } = captureState;
@@ -464,6 +503,33 @@ export default function MainScreen({ onLogout }) {
                             )}
                         </>
                     )}
+
+                    {/* Selection Mode Test Button */}
+                    {translationMode === 'SELECTION' && (
+                        <TouchableOpacity
+                            style={styles.buttonTest}
+                            onPress={async () => {
+                                // Ensure Overlay Service is started first
+                                const hasPermission = await overlayService.checkPermission();
+                                if (!hasPermission) {
+                                    overlayService.requestPermission();
+                                    return;
+                                }
+
+                                // Start with empty content if not already running
+                                await overlayService.start(JSON.stringify([]));
+
+                                // Give it a tiny bit of time to initialize the service instance
+                                setTimeout(() => {
+                                    overlayService.setInteractionEnabled(true);
+                                    overlayService.showLogo(200, 400);
+                                    Alert.alert('Thành công', 'Logo đã được kích hoạt. Bạn có thể kéo thả logo trên màn hình.');
+                                }, 600);
+                            }}
+                        >
+                            <Text style={styles.buttonText}>🎯 Hiện Logo Test</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             )}
 
@@ -500,6 +566,7 @@ export default function MainScreen({ onLogout }) {
             </TouchableOpacity>
 
             {renderLanguageModal()}
+            {renderResultModal()}
         </ScrollView>
     );
 }
@@ -841,16 +908,67 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
-    closeButton: {
-        marginTop: 16,
-        backgroundColor: '#f1f3f4',
-        padding: 16,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
     closeButtonText: {
         fontSize: 16,
         color: '#333',
         fontWeight: '600',
     },
+    // Result Panel Styles
+    buttonTest: {
+        backgroundColor: '#673AB7',
+        padding: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 12,
+    },
+    resultPanel: {
+        backgroundColor: '#fff',
+        marginHorizontal: 20,
+        marginBottom: 40,
+        borderRadius: 16,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 20,
+    },
+    resultHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        paddingBottom: 10,
+    },
+    resultTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    closeIcon: {
+        fontSize: 24,
+        color: '#999',
+        padding: 4,
+    },
+    resultContent: {
+        maxHeight: 200,
+    },
+    translatedTextContent: {
+        fontSize: 16,
+        lineHeight: 24,
+        color: '#444',
+    },
+    resultFooter: {
+        marginTop: 15,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+        paddingTop: 10,
+    },
+    resultMeta: {
+        fontSize: 12,
+        color: '#888',
+        fontStyle: 'italic',
+    }
 });

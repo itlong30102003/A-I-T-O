@@ -8,6 +8,8 @@ import android.graphics.Rect;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+import android.util.Log;
+import android.graphics.Bitmap;
 import android.view.View;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -48,6 +50,7 @@ public class OverlayView extends View {
         }
     }
 
+
     public void updateBlocks(String jsonString) {
         textBlocks.clear();
         try {
@@ -64,7 +67,6 @@ public class OverlayView extends View {
                     int w = boundingBox.optInt("width", 0);
                     int h = boundingBox.optInt("height", 0);
                     
-                    // Subtract status bar height to correct overlay position
                     int adjustedY = y - statusBarHeight;
                     
                     if (w > 0 && h > 0 && adjustedY + h > 0) {
@@ -78,10 +80,6 @@ public class OverlayView extends View {
         invalidate();
     }
 
-    /**
-     * Find the optimal text size that fits the text within the given width and height
-     * using binary search for efficiency.
-     */
     private float findOptimalTextSize(String text, int maxWidth, int maxHeight, float minSize, float maxSize) {
         float low = minSize;
         float high = maxSize;
@@ -114,40 +112,33 @@ public class OverlayView extends View {
         super.onDraw(canvas);
 
         for (TextBlock block : textBlocks) {
-            // Draw Background
             canvas.drawRect(block.rect, paintBackground);
-
             if (block.text == null || block.text.isEmpty()) continue;
 
             int boxWidth = block.rect.width();
             int boxHeight = block.rect.height();
-            
             if (boxWidth <= 0 || boxHeight <= 0) continue;
 
-            // Add padding
             int padding = 4;
             int availableWidth = boxWidth - (padding * 2);
             int availableHeight = boxHeight - (padding * 2);
-            
             if (availableWidth <= 0 || availableHeight <= 0) continue;
 
-            // Find optimal text size (min 12, max 100)
             float optimalSize = findOptimalTextSize(block.text, availableWidth, availableHeight, 12f, 100f);
             textPaint.setTextSize(optimalSize);
 
-            // Create StaticLayout for multi-line text rendering
             StaticLayout staticLayout = StaticLayout.Builder
                 .obtain(block.text, 0, block.text.length(), textPaint, availableWidth)
-                .setAlignment(Layout.Alignment.ALIGN_NORMAL) // Left-aligned
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                 .setLineSpacing(0f, 1f)
                 .setIncludePad(false)
                 .build();
 
-            // Draw the text
             canvas.save();
             canvas.translate(block.rect.left + padding, block.rect.top + padding);
             staticLayout.draw(canvas);
             canvas.restore();
         }
     }
+
 }

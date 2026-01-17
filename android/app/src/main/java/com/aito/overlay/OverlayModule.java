@@ -53,7 +53,6 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
 
     @ReactMethod
     public void startOverlay(String text) {
-        // Use static reference to avoid TransactionTooLarge for large data
         OverlayService.pendingBlocksJson = text;
         
         Intent intent = new Intent(getReactApplicationContext(), OverlayService.class);
@@ -61,6 +60,44 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
             getReactApplicationContext().startForegroundService(intent);
         } else {
             getReactApplicationContext().startService(intent);
+        }
+
+        // Setup listener when service starts
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (OverlayService.instance != null) {
+                    OverlayService.instance.setOnLogoClickListener(new OverlayService.OnLogoClickListener() {
+                        @Override
+                        public void onClick() {
+                            getReactApplicationContext()
+                                .getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                .emit("onOverlayLogoClick", null);
+                        }
+                    });
+                }
+            }
+        }, 500);
+    }
+
+    @ReactMethod
+    public void setInteractionEnabled(boolean enabled) {
+        if (OverlayService.instance != null) {
+            OverlayService.instance.setInteractionEnabled(enabled);
+        }
+    }
+
+    @ReactMethod
+    public void showLogo(int x, int y) {
+        if (OverlayService.instance != null) {
+            OverlayService.instance.showLogo(x, y);
+        }
+    }
+
+    @ReactMethod
+    public void hideLogo() {
+        if (OverlayService.instance != null) {
+            OverlayService.instance.hideLogo();
         }
     }
 

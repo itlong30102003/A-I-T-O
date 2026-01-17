@@ -60,6 +60,41 @@ class OverlayService {
     }
 
     /**
+     * Show the clickable logo at a specific position.
+     */
+    showLogo(x: number, y: number) {
+        if (!this.isSupported) return;
+        OverlayModule.showLogo(Math.round(x), Math.round(y));
+    }
+
+    /**
+     * Hide the clickable logo.
+     */
+    hideLogo() {
+        if (!this.isSupported) return;
+        OverlayModule.hideLogo();
+    }
+
+    /**
+     * Toggle whether the overlay can receive touch events.
+     */
+    setInteractionEnabled(enabled: boolean) {
+        if (!this.isSupported) return;
+        OverlayModule.setInteractionEnabled(enabled);
+    }
+
+    /**
+     * Subscribe to logo click events.
+     */
+    onLogoClick(callback: () => void): () => void {
+        if (!this.isSupported) return () => { };
+        const { NativeEventEmitter } = require('react-native');
+        const emitter = new NativeEventEmitter(OverlayModule);
+        const subscription = emitter.addListener('onOverlayLogoClick', callback);
+        return () => subscription.remove();
+    }
+
+    /**
      * Update existing overlay with new blocks.
      * @param {any[]} blocks - Array of text blocks with translation.
      */
