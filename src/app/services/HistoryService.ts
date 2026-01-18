@@ -27,7 +27,7 @@ class HistoryService {
             // Handle Batch vs Dictionary vs Simple
             // For now, assume simple text or simple batch
             // Flatten batch results for history? Or save as one batch?
-            // "Dịch theo vùng chọn (Qwen + lưu lịch sử dịch)" implies likely single text blocks or one entry.
+            // "Dịch theo vùng chọn (ML Kit + lưu lịch sử dịch)" - save individual translations.
             // If it's a batch, we probably want to save individual known good translations or the whole session.
             // Let's iterate if it's a batch of independent items.
 

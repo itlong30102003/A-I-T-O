@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 
 import com.facebook.react.bridge.ActivityEventListener;
@@ -11,6 +13,7 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 public class OverlayModule extends ReactContextBaseJavaModule implements ActivityEventListener {
     private static final int DRAW_OVER_OTHER_APP_PERMISSION_REQUEST_CODE = 1234;
@@ -31,7 +34,7 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             promise.resolve(Settings.canDrawOverlays(getReactApplicationContext()));
         } else {
-            promise.resolve(true); // Always true for older versions
+            promise.resolve(true);
         }
     }
 
@@ -39,7 +42,7 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     public void requestPermission(Promise promise) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!Settings.canDrawOverlays(getReactApplicationContext())) {
-                permissionPromise = promise; // Save promise to resolve later
+                permissionPromise = promise;
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         Uri.parse("package:" + getReactApplicationContext().getPackageName()));
                 getCurrentActivity().startActivityForResult(intent, DRAW_OVER_OTHER_APP_PERMISSION_REQUEST_CODE);
@@ -62,22 +65,42 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
             getReactApplicationContext().startService(intent);
         }
 
-        // Setup listener when service starts
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+        // Setup listeners when service starts
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (OverlayService.instance != null) {
-                    OverlayService.instance.setOnLogoClickListener(new OverlayService.OnLogoClickListener() {
-                        @Override
-                        public void onClick() {
-                            getReactApplicationContext()
-                                .getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                                .emit("onOverlayLogoClick", null);
-                        }
-                    });
-                }
+                setupServiceListeners();
             }
         }, 500);
+    }
+    
+    private void setupServiceListeners() {
+        if (OverlayService.instance == null) return;
+        
+        OverlayService.instance.setOnLogoClickListener(new OverlayService.OnLogoClickListener() {
+            @Override
+            public void onClick() {
+                emitEvent("onOverlayLogoClick", null);
+            }
+        });
+        
+        OverlayService.instance.setOnNavbarEventListener(new OverlayService.OnNavbarEventListener() {
+            @Override
+            public void onSourceLangClick() {
+                emitEvent("onNavbarSourceLangClick", null);
+            }
+            
+            @Override
+            public void onTargetLangClick() {
+                emitEvent("onNavbarTargetLangClick", null);
+            }
+        });
+    }
+    
+    private void emitEvent(String eventName, Object data) {
+        getReactApplicationContext()
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+            .emit(eventName, data);
     }
 
     @ReactMethod
@@ -88,9 +111,9 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     }
 
     @ReactMethod
-    public void showLogo(int x, int y) {
+    public void showLogo() {
         if (OverlayService.instance != null) {
-            OverlayService.instance.showLogo(x, y);
+            OverlayService.instance.showLogo();
         }
     }
 
@@ -100,11 +123,35 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
             OverlayService.instance.hideLogo();
         }
     }
+    
+    @ReactMethod
+    public void toggleNavbar() {
+        if (OverlayService.instance != null) {
+            OverlayService.instance.toggleNavbar();
+        }
+    }
+    
+    @ReactMethod
+    public void setNavbarConfig(String mode, String sourceLang, String targetLang) {
+        if (OverlayService.instance != null) {
+            OverlayService.instance.setNavbarConfig(mode, sourceLang, targetLang);
+        }
+    }
 
     @ReactMethod
     public void stopOverlay() {
         Intent intent = new Intent(getReactApplicationContext(), OverlayService.class);
         getReactApplicationContext().stopService(intent);
+    }
+    
+    @ReactMethod
+    public void addListener(String eventName) {
+        // Required for RN EventEmitter
+    }
+
+    @ReactMethod
+    public void removeListeners(int count) {
+        // Required for RN EventEmitter
     }
 
     @Override

@@ -4,45 +4,81 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
-import android.graphics.PixelFormat;
-import android.os.Build;
-import android.os.IBinder;
-import android.view.View;
-import android.view.Gravity;
-import android.view.WindowManager;
-import android.util.Log;
-import android.content.pm.ServiceInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
-import androidx.core.app.NotificationCompat;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PixelFormat;
+import android.graphics.RectF;
+import android.os.Build;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
+import android.text.TextPaint;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.Gravity;
 import android.view.MotionEvent;
-import android.widget.ImageView;
-import android.content.res.Resources;
+import android.view.View;
+import android.view.WindowManager;
+import android.content.pm.ServiceInfo;
+import androidx.core.app.NotificationCompat;
+import com.aito.R;
 
 public class OverlayService extends Service {
     private WindowManager windowManager;
-    private OverlayView overlayView;
-    private WindowManager.LayoutParams textParams;
-    
-    // Logo Floating Bubble
-    private ImageView logoView;
+    private View logoView;
+    private View navbarView;
     private WindowManager.LayoutParams logoParams;
+    private WindowManager.LayoutParams navbarParams;
     
     private static final String TAG = "OverlayService";
     private static final String CHANNEL_ID = "overlay_channel";
     private static final int NOTIFICATION_ID = 2001;
     
+    // Dimensions
+    private int logoSizePx;
+    private int logoMarginPx;
+    private int navbarHeightPx;
+    private int navbarTopMarginPx;
+    private int navbarHorizontalMarginPx;
+    private int screenWidth;
+    private int screenHeight;
+    
+    // State
+    private boolean isNavbarVisible = false;
+    private String currentMode = "REALTIME";
+    private String sourceLanguage = "Auto";
+    private String targetLanguage = "VN";
+    private Bitmap logoBitmap;
+    
+    // Static reference for communication
     public static OverlayService instance = null;
     public static String pendingBlocksJson = null;
 
-    private OnLogoClickListener jsListener;
+    // Listeners
+    private OnLogoClickListener jsLogoListener;
+    private OnNavbarEventListener jsNavbarListener;
 
     public interface OnLogoClickListener {
         void onClick();
     }
+    
+    public interface OnNavbarEventListener {
+        void onSourceLangClick();
+        void onTargetLangClick();
+    }
 
     public void setOnLogoClickListener(OnLogoClickListener listener) {
-        this.jsListener = listener;
+        this.jsLogoListener = listener;
+    }
+    
+    public void setOnNavbarEventListener(OnNavbarEventListener listener) {
+        this.jsNavbarListener = listener;
     }
 
     @Override
@@ -54,7 +90,7 @@ public class OverlayService extends Service {
     public void onCreate() {
         super.onCreate();
         instance = this;
-        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        Log.d(TAG, "Overlay Service Created");
 
         createNotificationChannel();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -63,144 +99,283 @@ public class OverlayService extends Service {
             startForeground(NOTIFICATION_ID, createNotification());
         }
 
-        setupTextOverlay();
-        setupLogoOverlay();
-    }
-
-    private void setupTextOverlay() {
-        overlayView = new OverlayView(this);
-        int layoutFlag = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ?
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY :
-                WindowManager.LayoutParams.TYPE_PHONE;
-
-        textParams = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.MATCH_PARENT,
-                layoutFlag,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | 
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | 
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-                PixelFormat.TRANSLUCENT);
-
-        textParams.gravity = Gravity.TOP | Gravity.START;
-        windowManager.addView(overlayView, textParams);
-    }
-
-    private void setupLogoOverlay() {
-        logoView = new ImageView(this);
+        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         
-        // Load the aito_logo from resources
-        int logoResId = getResources().getIdentifier("aito_logo", "drawable", getPackageName());
-        if (logoResId != 0) {
-            logoView.setImageResource(logoResId);
-        } else {
-            // Fallback if resource not found
-            logoView.setBackgroundColor(Color.BLUE);
+        // Get screen dimensions
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        float density = dm.density;
+        screenWidth = dm.widthPixels;
+        screenHeight = dm.heightPixels;
+        
+        // Convert dp to px
+        logoSizePx = (int) (56 * density);
+        logoMarginPx = (int) (16 * density);
+        navbarHeightPx = (int) (48 * density);
+        navbarTopMarginPx = (int) (60 * density);
+        navbarHorizontalMarginPx = (int) (16 * density);
+        
+        // Load logo
+        try {
+            logoBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ai_translate);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load logo", e);
         }
+        
+        createLogoView();
+        createNavbarView();
+    }
+    
+    private void createLogoView() {
+        logoView = new View(this) {
+            @Override
+            protected void onDraw(Canvas canvas) {
+                super.onDraw(canvas);
+                drawLogo(canvas);
+            }
+        };
+        
+        logoView.setOnClickListener(v -> {
+            toggleNavbar();
+            if (jsLogoListener != null) jsLogoListener.onClick();
+        });
 
-        int size = dpToPx(64);
-        int layoutFlag = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ?
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY :
-                WindowManager.LayoutParams.TYPE_PHONE;
+        int layoutFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? 
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : 
+            WindowManager.LayoutParams.TYPE_PHONE;
 
         logoParams = new WindowManager.LayoutParams(
-                size, size,
+                logoSizePx,
+                logoSizePx,
                 layoutFlag,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT);
 
-        logoParams.gravity = Gravity.TOP | Gravity.START;
-        logoParams.x = 100;
-        logoParams.y = 500;
+        logoParams.gravity = Gravity.BOTTOM | Gravity.END;
+        logoParams.x = logoMarginPx;
+        logoParams.y = logoMarginPx + 100; // Extra margin for nav bar
+    }
+    
+    private void createNavbarView() {
+        int navbarWidth = screenWidth - (navbarHorizontalMarginPx * 2);
         
-        // Hide by default
-        logoView.setVisibility(View.GONE);
-
-        // Implement Drag and Click
-        logoView.setOnTouchListener(new View.OnTouchListener() {
-            private int initialX, initialY;
-            private float initialTouchX, initialTouchY;
-            private long lastTouchTime = 0;
-
+        navbarView = new View(this) {
+            private RectF sourceLangBtn = new RectF();
+            private RectF targetLangBtn = new RectF();
+            
             @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        initialX = logoParams.x;
-                        initialY = logoParams.y;
-                        initialTouchX = event.getRawX();
-                        initialTouchY = event.getRawY();
-                        lastTouchTime = System.currentTimeMillis();
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        long clickDuration = System.currentTimeMillis() - lastTouchTime;
-                        if (clickDuration < 200) {
-                            if (jsListener != null) jsListener.onClick();
-                        }
-                        return true;
-                    case MotionEvent.ACTION_MOVE:
-                        logoParams.x = initialX + (int) (event.getRawX() - initialTouchX);
-                        logoParams.y = initialY + (int) (event.getRawY() - initialTouchY);
-                        windowManager.updateViewLayout(logoView, logoParams);
-                        return true;
-                }
-                return false;
+            protected void onDraw(Canvas canvas) {
+                super.onDraw(canvas);
+                drawNavbar(canvas, getWidth(), getHeight(), sourceLangBtn, targetLangBtn);
             }
-        });
-
-        windowManager.addView(logoView, logoParams);
-    }
-
-    public void setInteractionEnabled(final boolean enabled) {
-        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+            
             @Override
-            public void run() {
-                if (textParams == null || windowManager == null || overlayView == null) return;
-                if (enabled) {
-                    textParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-                } else {
-                    textParams.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-                }
-                try {
-                    windowManager.updateViewLayout(overlayView, textParams);
-                } catch (Exception e) {
-                    Log.e(TAG, "Error updating text overlay layout", e);
-                }
-            }
-        });
-    }
-
-    public void showLogo(final int x, final int y) {
-        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                if (logoView != null && windowManager != null) {
-                    logoParams.x = x;
-                    logoParams.y = y;
-                    try {
-                        windowManager.updateViewLayout(logoView, logoParams);
-                        logoView.setVisibility(View.VISIBLE);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error showing logo", e);
+            public boolean onTouchEvent(MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    float x = event.getX();
+                    float y = event.getY();
+                    
+                    if (sourceLangBtn.contains(x, y)) {
+                        if (jsNavbarListener != null) jsNavbarListener.onSourceLangClick();
+                        return true;
+                    }
+                    if (targetLangBtn.contains(x, y)) {
+                        if (jsNavbarListener != null) jsNavbarListener.onTargetLangClick();
+                        return true;
                     }
                 }
+                return true; // Consume all touches on navbar
+            }
+        };
+
+        int layoutFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? 
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : 
+            WindowManager.LayoutParams.TYPE_PHONE;
+
+        navbarParams = new WindowManager.LayoutParams(
+                navbarWidth,
+                navbarHeightPx,
+                layoutFlag,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+
+        navbarParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        navbarParams.y = navbarTopMarginPx;
+    }
+    
+    private void drawLogo(Canvas canvas) {
+        int size = canvas.getWidth();
+        float cornerRadius = size * 0.2f; // 20% corner radius
+        float padding = 2f;
+        
+        RectF rect = new RectF(padding, padding, size - padding, size - padding);
+        
+        // Shadow
+        Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        shadowPaint.setColor(Color.argb(40, 0, 0, 0));
+        RectF shadowRect = new RectF(padding + 2, padding + 2, size - padding + 2, size - padding + 2);
+        canvas.drawRoundRect(shadowRect, cornerRadius, cornerRadius, shadowPaint);
+        
+        if (logoBitmap != null) {
+            // Clip to rounded rect
+            Path clipPath = new Path();
+            clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW);
+            canvas.save();
+            canvas.clipPath(clipPath);
+            canvas.drawBitmap(logoBitmap, null, rect, null);
+            canvas.restore();
+            
+            // Black thin border
+            Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            borderPaint.setColor(Color.BLACK);
+            borderPaint.setStyle(Paint.Style.STROKE);
+            borderPaint.setStrokeWidth(1.5f);
+            canvas.drawRoundRect(rect, cornerRadius, cornerRadius, borderPaint);
+        } else {
+            Paint fallback = new Paint(Paint.ANTI_ALIAS_FLAG);
+            fallback.setColor(Color.parseColor("#4285F4"));
+            canvas.drawRoundRect(rect, cornerRadius, cornerRadius, fallback);
+        }
+    }
+    
+    private void drawNavbar(Canvas canvas, int width, int height, RectF sourceLangBtn, RectF targetLangBtn) {
+        float density = getResources().getDisplayMetrics().density;
+        float cornerRadius = height / 2f;
+        
+        // Background
+        Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        bgPaint.setColor(Color.WHITE);
+        bgPaint.setShadowLayer(8 * density, 0, 2 * density, Color.argb(40, 0, 0, 0));
+        canvas.drawRoundRect(0, 0, width, height, cornerRadius, cornerRadius, bgPaint);
+        
+        // Text paints
+        TextPaint modePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        modePaint.setColor(Color.parseColor("#333333"));
+        modePaint.setTextSize(13 * density);
+        modePaint.setFakeBoldText(true);
+        
+        TextPaint btnPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        btnPaint.setColor(Color.parseColor("#4285F4"));
+        btnPaint.setTextSize(13 * density);
+        btnPaint.setFakeBoldText(true);
+        
+        Paint btnBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        btnBgPaint.setColor(Color.parseColor("#F0F4FF"));
+        
+        float centerY = height / 2f;
+        Paint.FontMetrics fm = modePaint.getFontMetrics();
+        float textY = centerY - (fm.ascent + fm.descent) / 2;
+        
+        // Mode icon
+        String modeIcon = getModeIcon(currentMode);
+        canvas.drawText(modeIcon + " " + currentMode, 16 * density, textY, modePaint);
+        
+        // Source button
+        float sectionWidth = width / 3f;
+        float btnHeight = height - 16 * density;
+        float btnRadius = btnHeight / 2f;
+        float btnY = (height - btnHeight) / 2f;
+        
+        sourceLangBtn.set(sectionWidth, btnY, sectionWidth * 2 - 8 * density, btnY + btnHeight);
+        canvas.drawRoundRect(sourceLangBtn, btnRadius, btnRadius, btnBgPaint);
+        String srcText = "🌐 " + sourceLanguage;
+        float srcWidth = btnPaint.measureText(srcText);
+        canvas.drawText(srcText, sourceLangBtn.centerX() - srcWidth / 2, textY, btnPaint);
+        
+        // Arrow
+        modePaint.setColor(Color.parseColor("#888888"));
+        canvas.drawText("→", sectionWidth * 2 - 4 * density, textY, modePaint);
+        
+        // Target button  
+        targetLangBtn.set(sectionWidth * 2 + 8 * density, btnY, width - 12 * density, btnY + btnHeight);
+        canvas.drawRoundRect(targetLangBtn, btnRadius, btnRadius, btnBgPaint);
+        String tgtText = "🎯 " + targetLanguage;
+        float tgtWidth = btnPaint.measureText(tgtText);
+        canvas.drawText(tgtText, targetLangBtn.centerX() - tgtWidth / 2, textY, btnPaint);
+    }
+    
+    private String getModeIcon(String mode) {
+        switch (mode) {
+            case "REALTIME": return "⚡";
+            case "SELECTION": return "🖐️";
+            case "CAMERA": return "📷";
+            default: return "🔄";
+        }
+    }
+
+    public void showLogo() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (logoView.getParent() == null) {
+                    windowManager.addView(logoView, logoParams);
+                }
+                logoView.invalidate();
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing logo", e);
             }
         });
     }
 
     public void hideLogo() {
-        new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                if (logoView != null) {
-                    logoView.setVisibility(View.GONE);
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (logoView.getParent() != null) {
+                    windowManager.removeView(logoView);
                 }
+                hideNavbar();
+            } catch (Exception e) {
+                Log.e(TAG, "Error hiding logo", e);
             }
         });
     }
-
-    private int dpToPx(int dp) {
-        return (int) (dp * Resources.getSystem().getDisplayMetrics().density);
+    
+    public void toggleNavbar() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (isNavbarVisible) {
+                hideNavbar();
+            } else {
+                showNavbar();
+            }
+        });
+    }
+    
+    private void showNavbar() {
+        try {
+            if (navbarView.getParent() == null) {
+                windowManager.addView(navbarView, navbarParams);
+            }
+            navbarView.invalidate();
+            isNavbarVisible = true;
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing navbar", e);
+        }
+    }
+    
+    private void hideNavbar() {
+        try {
+            if (navbarView.getParent() != null) {
+                windowManager.removeView(navbarView);
+            }
+            isNavbarVisible = false;
+        } catch (Exception e) {
+            Log.e(TAG, "Error hiding navbar", e);
+        }
+    }
+    
+    public void setNavbarConfig(final String mode, final String sourceLang, final String targetLang) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            this.currentMode = mode != null ? mode : "REALTIME";
+            this.sourceLanguage = sourceLang != null ? sourceLang : "Auto";
+            this.targetLanguage = targetLang != null ? targetLang : "VN";
+            if (navbarView != null) {
+                navbarView.invalidate();
+            }
+        });
+    }
+    
+    public void setInteractionEnabled(final boolean enabled) {
+        // Not needed with separate windows approach
     }
 
     private void createNotificationChannel() {
@@ -232,26 +407,28 @@ public class OverlayService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (pendingBlocksJson != null && overlayView != null) {
-            overlayView.updateBlocks(pendingBlocksJson);
-            pendingBlocksJson = null;
-        }
-        else if (intent != null && intent.hasExtra("text")) {
-            String jsonString = intent.getStringExtra("text");
-            if (overlayView != null && jsonString != null) {
-                overlayView.updateBlocks(jsonString);
-            }
-        }
         return START_STICKY;
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        stopSelf();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         instance = null;
-        if (overlayView != null) {
-            windowManager.removeView(overlayView);
-            overlayView = null;
+        try {
+            if (logoView != null && logoView.getParent() != null) {
+                windowManager.removeView(logoView);
+            }
+            if (navbarView != null && navbarView.getParent() != null) {
+                windowManager.removeView(navbarView);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onDestroy", e);
         }
         Log.d(TAG, "Overlay Service Destroyed");
     }

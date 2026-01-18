@@ -10,7 +10,7 @@ export interface TranslationRequest {
     appCategory?: string;
     sourceLanguage?: string;  // Source language code (e.g. 'en', 'zh', 'auto')
     targetLanguage: string;   // Target language code (e.g. 'vi', 'en')
-    strategy?: 'MLKIT' | 'QWEN';
+    strategy?: 'MLKIT';
     saveHistory?: boolean;
 }
 

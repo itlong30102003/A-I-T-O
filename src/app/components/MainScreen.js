@@ -17,6 +17,7 @@ import { ocrPipelineService } from '../services/OCRPipelineService';
 import TranslationManager from '../services/TranslationManager';
 import { overlayService } from '../services/OverlayService';
 import { realtimePipelineService } from '../services/RealtimePipelineService';
+import { mlKitTranslationService } from '../services/MLKitTranslationService';
 
 const LANGUAGES = {
     source: [
@@ -47,9 +48,17 @@ export default function MainScreen({ onLogout }) {
     const [showResultModal, setShowResultModal] = useState(false);
     const [selectedText, setSelectedText] = useState('Nội dung sẽ được dịch ở đây...');
 
+    // Model Loading State
+    const [modelLoadingStatus, setModelLoadingStatus] = useState({
+        isLoading: false,
+        loaded: mlKitTranslationService.modelsLoaded,
+        progress: 0,
+        total: 4,
+    });
+
     const MODES = [
         { id: 'REALTIME', label: '⚡ Realtime', desc: 'Dịch trực tiếp (ML Kit)' },
-        { id: 'SELECTION', label: '🖐️ Selection', desc: 'Chọn vùng dịch (Qwen)' },
+        { id: 'SELECTION', label: '🖐️ Selection', desc: 'Chọn vùng dịch (ML Kit)' },
         { id: 'CAMERA', label: '📷 Camera', desc: 'Dịch qua Camera' },
     ];
 
@@ -76,18 +85,49 @@ export default function MainScreen({ onLogout }) {
             setCaptureState(state);
         });
 
-        // Subscribe to logo clicks
+        // Subscribe to logo clicks (toggles navbar internally)
         const unsubsLogo = overlayService.onLogoClick(() => {
-            console.log('MainScreen: Logo clicked!');
-            setShowResultModal(true);
+            console.log('MainScreen: Logo clicked - navbar toggled');
+        });
+
+        // Subscribe to navbar source language click
+        const unsubsSourceLang = overlayService.onSourceLangClick(() => {
+            console.log('MainScreen: Source lang clicked from navbar');
+            setShowLanguageModal('source');
+        });
+
+        // Subscribe to navbar target language click
+        const unsubsTargetLang = overlayService.onTargetLangClick(() => {
+            console.log('MainScreen: Target lang clicked from navbar');
+            setShowLanguageModal('target');
         });
 
         // Cleanup on unmount
         return () => {
             unsubscribe();
             unsubsLogo();
+            unsubsSourceLang();
+            unsubsTargetLang();
             screenCaptureService.cleanup();
         };
+    }, []);
+
+    // Preload ML Kit translation models on startup
+    useEffect(() => {
+        // Subscribe to model loading status
+        const unsubscribe = mlKitTranslationService.onStatusChange((status) => {
+            setModelLoadingStatus(status);
+        });
+
+        // Start preloading models in background
+        if (!mlKitTranslationService.modelsLoaded && !mlKitTranslationService.isModelLoading) {
+            console.log('MainScreen: Starting ML Kit model preload...');
+            mlKitTranslationService.preloadModels().catch(err => {
+                console.warn('MainScreen: Model preload failed:', err);
+            });
+        }
+
+        return () => unsubscribe();
     }, []);
 
     // Update duration and handle OCR pipeline state & Realtime Translation
@@ -110,8 +150,13 @@ export default function MainScreen({ onLogout }) {
 
             const script = ['zh', 'ja', 'ko'].includes(sourceLang.code) ? 'chinese' : 'latin';
 
+            // Start overlay with logo and navbar config
+            await overlayService.start('[]');
+            overlayService.showLogo();
+            overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
+
             if (translationMode === 'REALTIME') {
-                console.error('MainScreen: --> Realtime Pipeline Start');
+                console.log('MainScreen: --> Realtime Pipeline Start');
                 realtimePipelineService.start({
                     script,
                     sourceLanguage: sourceLang.code,
@@ -121,7 +166,7 @@ export default function MainScreen({ onLogout }) {
                     maxPendingTranslation: 2,
                 });
             } else {
-                console.error('MainScreen: --> OCR Pipeline Start (Selection Mode)');
+                console.log('MainScreen: --> OCR Pipeline Start (Selection Mode)');
                 ocrPipelineService.start(script);
             }
         };
@@ -146,7 +191,10 @@ export default function MainScreen({ onLogout }) {
         };
     }, [captureState.isCapturing, translationMode, sourceLang.code, targetLang.code]);
 
-
+    // Sync navbar config when mode or language changes
+    useEffect(() => {
+        overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
+    }, [translationMode, sourceLang.label, targetLang.label]);
 
     const handleLogout = async () => {
         try {
@@ -302,7 +350,7 @@ export default function MainScreen({ onLogout }) {
             >
                 <View style={styles.resultPanel}>
                     <View style={styles.resultHeader}>
-                        <Text style={styles.resultTitle}>📝 Bản dịch Qwen</Text>
+                        <Text style={styles.resultTitle}>📝 Bản dịch</Text>
                         <TouchableOpacity onPress={() => setShowResultModal(false)}>
                             <Text style={styles.closeIcon}>✕</Text>
                         </TouchableOpacity>
@@ -311,7 +359,7 @@ export default function MainScreen({ onLogout }) {
                         <Text style={styles.translatedTextContent}>{selectedText}</Text>
                     </ScrollView>
                     <View style={styles.resultFooter}>
-                        <Text style={styles.resultMeta}>💡 Model: Qwen2.5-1.5B (Local)</Text>
+                        <Text style={styles.resultMeta}>💡 Model: ML Kit (Local)</Text>
                     </View>
                 </View>
             </TouchableOpacity>
@@ -358,6 +406,30 @@ export default function MainScreen({ onLogout }) {
                     <Text style={styles.infoText}>⏳ Đang tải thông tin...</Text>
                 )}
             </View>
+
+            {/* Model Loading Status Banner */}
+            {modelLoadingStatus.isLoading && (
+                <View style={styles.modelLoadingBanner}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <View style={styles.modelLoadingTextContainer}>
+                        <Text style={styles.modelLoadingText}>
+                            🔄 Đang tải model dịch... ({modelLoadingStatus.progress}/{modelLoadingStatus.total})
+                        </Text>
+                        <Text style={styles.modelLoadingSubtext}>
+                            Lần đầu sẽ mất vài phút, các lần sau sẽ nhanh hơn
+                        </Text>
+                    </View>
+                </View>
+            )}
+
+            {/* Model Loaded Success Banner - show briefly */}
+            {modelLoadingStatus.loaded && !modelLoadingStatus.isLoading && (
+                <View style={styles.modelLoadedBanner}>
+                    <Text style={styles.modelLoadedText}>
+                        ✅ Model dịch đã sẵn sàng
+                    </Text>
+                </View>
+            )}
 
             {/* Mode Selector */}
             <View style={styles.modeSection}>
@@ -509,22 +581,21 @@ export default function MainScreen({ onLogout }) {
                         <TouchableOpacity
                             style={styles.buttonTest}
                             onPress={async () => {
-                                // Ensure Overlay Service is started first
-                                const hasPermission = await overlayService.checkPermission();
-                                if (!hasPermission) {
-                                    overlayService.requestPermission();
-                                    return;
+                                try {
+                                    const hasPermission = await overlayService.checkPermission();
+                                    if (!hasPermission) {
+                                        Alert.alert('Quyền Overlay', 'Hãy cấp quyền overlay để test.');
+                                        overlayService.requestPermission();
+                                        return;
+                                    }
+
+                                    await overlayService.start('[]');
+                                    overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
+                                    overlayService.showLogo();
+                                    Alert.alert('Test Overlay', 'Logo đã hiện góc phải dưới! Click logo để toggle navbar.');
+                                } catch (e) {
+                                    Alert.alert('Lỗi', e.message);
                                 }
-
-                                // Start with empty content if not already running
-                                await overlayService.start(JSON.stringify([]));
-
-                                // Give it a tiny bit of time to initialize the service instance
-                                setTimeout(() => {
-                                    overlayService.setInteractionEnabled(true);
-                                    overlayService.showLogo(200, 400);
-                                    Alert.alert('Thành công', 'Logo đã được kích hoạt. Bạn có thể kéo thả logo trên màn hình.');
-                                }, 600);
                             }}
                         >
                             <Text style={styles.buttonText}>🎯 Hiện Logo Test</Text>
@@ -620,6 +691,42 @@ const styles = StyleSheet.create({
         color: '#888',
         marginTop: 4,
         fontStyle: 'italic',
+    },
+    modelLoadingBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1976d2',
+        padding: 14,
+        borderRadius: 12,
+        marginBottom: 16,
+    },
+    modelLoadingTextContainer: {
+        marginLeft: 12,
+        flex: 1,
+    },
+    modelLoadingText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    modelLoadingSubtext: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 12,
+        marginTop: 2,
+    },
+    modelLoadedBanner: {
+        backgroundColor: '#e8f5e9',
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#c8e6c9',
+    },
+    modelLoadedText: {
+        color: '#2e7d32',
+        fontSize: 14,
+        fontWeight: '600',
+        textAlign: 'center',
     },
     captureSection: {
         backgroundColor: '#fff',

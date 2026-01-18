@@ -1,19 +1,22 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 
 const { OverlayModule } = NativeModules;
 
 class OverlayService {
     isSupported: boolean;
+    private emitter: NativeEventEmitter | null = null;
 
     constructor() {
         this.isSupported = Platform.OS === 'android';
+        if (this.isSupported && OverlayModule) {
+            this.emitter = new NativeEventEmitter(OverlayModule);
+        }
     }
 
     /**
      * Check if the app has permission to draw over other apps.
-     * @returns {Promise<boolean>}
      */
-    async checkPermission() {
+    async checkPermission(): Promise<boolean> {
         if (!this.isSupported) return false;
         try {
             return await OverlayModule.checkPermission();
@@ -25,10 +28,8 @@ class OverlayService {
 
     /**
      * Request the "Display over other apps" permission.
-     * On Android M+, this will open the system settings screen.
-     * @returns {Promise<boolean>}
      */
-    async requestPermission() {
+    async requestPermission(): Promise<boolean> {
         if (!this.isSupported) return false;
         try {
             return await OverlayModule.requestPermission();
@@ -39,11 +40,10 @@ class OverlayService {
     }
 
     /**
-     * Start the overlay service with the given data (JSON string of blocks or text).
-     * @param {string} data - JSON string containing text blocks or simple text.
+     * Start the overlay service with the given data (JSON string of blocks).
      */
-    async start(data: string) {
-        if (!this.isSupported) return;
+    async start(data: string): Promise<boolean> {
+        if (!this.isSupported) return false;
         try {
             const hasPermission = await this.checkPermission();
             if (hasPermission) {
@@ -60,25 +60,41 @@ class OverlayService {
     }
 
     /**
-     * Show the clickable logo at a specific position.
+     * Show the logo button at bottom-right corner.
      */
-    showLogo(x: number, y: number) {
+    showLogo(): void {
         if (!this.isSupported) return;
-        OverlayModule.showLogo(Math.round(x), Math.round(y));
+        OverlayModule.showLogo();
     }
 
     /**
-     * Hide the clickable logo.
+     * Hide the logo and navbar.
      */
-    hideLogo() {
+    hideLogo(): void {
         if (!this.isSupported) return;
         OverlayModule.hideLogo();
     }
 
     /**
-     * Toggle whether the overlay can receive touch events.
+     * Toggle navbar visibility.
      */
-    setInteractionEnabled(enabled: boolean) {
+    toggleNavbar(): void {
+        if (!this.isSupported) return;
+        OverlayModule.toggleNavbar();
+    }
+
+    /**
+     * Update navbar configuration.
+     */
+    setNavbarConfig(mode: string, sourceLang: string, targetLang: string): void {
+        if (!this.isSupported) return;
+        OverlayModule.setNavbarConfig(mode, sourceLang, targetLang);
+    }
+
+    /**
+     * Toggle touch interaction for overlay.
+     */
+    setInteractionEnabled(enabled: boolean): void {
         if (!this.isSupported) return;
         OverlayModule.setInteractionEnabled(enabled);
     }
@@ -87,27 +103,44 @@ class OverlayService {
      * Subscribe to logo click events.
      */
     onLogoClick(callback: () => void): () => void {
-        if (!this.isSupported) return () => { };
-        const { NativeEventEmitter } = require('react-native');
-        const emitter = new NativeEventEmitter(OverlayModule);
-        const subscription = emitter.addListener('onOverlayLogoClick', callback);
+        if (!this.isSupported || !this.emitter) return () => { };
+        const subscription = this.emitter.addListener('onOverlayLogoClick', callback);
         return () => subscription.remove();
     }
 
     /**
-     * Update existing overlay with new blocks.
-     * @param {any[]} blocks - Array of text blocks with translation.
+     * Subscribe to source language button click.
      */
-    updateOverlay(blocks: any[]) {
+    onSourceLangClick(callback: () => void): () => void {
+        if (!this.isSupported || !this.emitter) return () => { };
+        const subscription = this.emitter.addListener('onNavbarSourceLangClick', callback);
+        return () => subscription.remove();
+    }
+
+    /**
+     * Subscribe to target language button click.
+     */
+    onTargetLangClick(callback: () => void): () => void {
+        if (!this.isSupported || !this.emitter) return () => { };
+        const subscription = this.emitter.addListener('onNavbarTargetLangClick', callback);
+        return () => subscription.remove();
+    }
+
+    /**
+     * Update overlay with translated blocks.
+     */
+    updateOverlay(blocks: any[]): void {
         if (!this.isSupported) return;
+        console.log(`OverlayService: updateOverlay called with ${blocks.length} blocks`);
         const json = JSON.stringify(blocks);
+        console.log(`OverlayService: Sending JSON to native (${json.length} chars)`);
         this.start(json);
     }
 
     /**
      * Stop the overlay service.
      */
-    stop() {
+    stop(): void {
         if (!this.isSupported) return;
         try {
             OverlayModule.stopOverlay();

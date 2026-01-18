@@ -1,20 +1,16 @@
 import MLKitTranslationService from './MLKitTranslationService';
 import { TranslationRequest, TranslationResponse } from './RemoteTranslationService';
 
-export type TranslationStrategy = 'MLKIT' | 'QWEN';
+export type TranslationStrategy = 'MLKIT';
 
 class TranslationManager {
-    private strategy: TranslationStrategy = 'MLKIT';
-    private activeStrategy: 'MLKIT' = 'MLKIT';
     private isInitialized = false;
 
     /**
-     * Initialize the manager and force MLKIT usage
+     * Initialize the manager
      */
-    async initialize(preferredStrategy: TranslationStrategy = 'MLKIT') {
-        this.strategy = 'MLKIT';
-        this.activeStrategy = 'MLKIT';
-        console.log('TranslationManager: Initialized with MLKIT as the exclusive strategy');
+    async initialize() {
+        console.log('TranslationManager: Initialized with ML Kit');
         this.isInitialized = true;
     }
 
@@ -35,34 +31,24 @@ class TranslationManager {
         }
 
         try {
-            const strategy = request.strategy || this.activeStrategy;
-
-            let response: TranslationResponse;
-            if (strategy === 'QWEN') {
-                const LocalTranslationService = require('./LocalTranslationService').default;
-                response = await LocalTranslationService.translate(request);
-            } else {
-                response = await MLKitTranslationService.translate(request);
-            }
+            const response = await MLKitTranslationService.translate(request);
 
             if (request.saveHistory) {
                 const HistoryService = require('./HistoryService').default;
-                // No await here -> Fire and Forget to not block UI? 
-                // Alternatively await if we want to ensure it saves. Fire and forget is better for UX latency.
-                HistoryService.save(request, response, strategy).catch((err: any) =>
+                HistoryService.save(request, response, 'MLKIT').catch((err: any) =>
                     console.error('TranslationManager: Background history save failed', err)
                 );
             }
 
             return response;
         } catch (error) {
-            console.error(`TranslationManager: Translation failed for strategy ${request.strategy}`, error);
+            console.error('TranslationManager: Translation failed', error);
             throw error;
         }
     }
 
     getActiveStrategy(): string {
-        return this.activeStrategy;
+        return 'MLKIT';
     }
 }
 
