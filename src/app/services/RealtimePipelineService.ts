@@ -1,5 +1,5 @@
 /**
- * RealtimePipelineService - Optimized Async Pipeline for Capture → OCR → Translate → Overlay
+ * RealtimePipelineService - Simple Pipeline for Capture → OCR → Translate → Overlay
  */
 
 import { FrameData } from './ScreenCaptureService';
@@ -11,59 +11,41 @@ export interface PipelineConfig {
     script: ScriptType;
     sourceLanguage?: string;
     targetLanguage: string;
-    debounceMs?: number;
-    maxPendingOCR?: number;
-    maxPendingTranslation?: number;
 }
 
-interface PendingOCRTask {
-    frame: FrameData;
-    cancelled: boolean;
-}
-
-interface PendingTranslationTask {
-    blocks: TextBlock[];
-    timestamp: number;
-    cancelled: boolean;
-}
-
-type PipelineStatus = 'idle' | 'running' | 'paused';
+type PipelineStatus = 'idle' | 'running';
 
 class RealtimePipelineService {
     private config: PipelineConfig = {
         script: 'latin',
         targetLanguage: 'vi',
-        debounceMs: 250,
-        maxPendingOCR: 2,
-        maxPendingTranslation: 2,
     };
 
     private status: PipelineStatus = 'idle';
-    private frameUnsubscribe: (() => void) | null = null;
     private nativeSubscription: any = null;
-    private statsTimer: ReturnType<typeof setInterval> | null = null;
-    private debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-    private pendingOCRTasks: PendingOCRTask[] = [];
-    private pendingTranslationTasks: PendingTranslationTask[] = [];
-    private lastFrameTimestamp = 0;
+    private isProcessing = false;
+    private currentFrameId = 0;  // Track which frame we're processing
+    private pendingFrame: FrameData | null = null;  // Store latest frame if busy
 
     private stats = {
         framesReceived: 0,
         ocrCompleted: 0,
         translationsCompleted: 0,
-        overlayUpdates: 0,
     };
 
     start(config: PipelineConfig): void {
         if (this.status === 'running') {
             this.config = { ...this.config, ...config };
+            console.log('[PIPELINE] Config updated while running');
             return;
         }
 
         this.config = { ...this.config, ...config };
         this.status = 'running';
-        this.resetStats();
+        this.isProcessing = false;
+        this.currentFrameId = 0;
+        this.pendingFrame = null;
+        this.stats = { framesReceived: 0, ocrCompleted: 0, translationsCompleted: 0 };
 
         const { ScreenCaptureModule } = require('react-native').NativeModules;
         const { NativeEventEmitter } = require('react-native');
@@ -77,110 +59,75 @@ class RealtimePipelineService {
             });
         });
 
-        this.frameUnsubscribe = () => {
-            if (this.nativeSubscription) {
-                this.nativeSubscription.remove();
-                this.nativeSubscription = null;
-            }
-        };
-
-        // Periodic status log for production monitoring (hidden in warn to stay visible but clean)
-        this.statsTimer = setInterval(() => {
-            if (this.status === 'running') {
-                console.log(`Realtime Status [FPS Index: ${this.stats.framesReceived}] OCR: ${this.stats.ocrCompleted}, Trans: ${this.stats.translationsCompleted}`);
-            }
-        }, 5000);
+        console.log('[PIPELINE] ▶️ Started');
     }
 
     stop(): void {
         this.status = 'idle';
-        if (this.frameUnsubscribe) {
-            this.frameUnsubscribe();
-            this.frameUnsubscribe = null;
+        if (this.nativeSubscription) {
+            this.nativeSubscription.remove();
+            this.nativeSubscription = null;
         }
-        if (this.statsTimer) clearInterval(this.statsTimer);
-        if (this.debounceTimer) clearTimeout(this.debounceTimer);
-        this.cancelAllPendingTasks();
+        this.pendingFrame = null;
         overlayService.stop();
+        console.log('[PIPELINE] ⏹️ Stopped');
     }
 
     private handleFrame = (frame: FrameData): void => {
-        if (this.status !== 'running') {
-            console.log('RealtimePipeline: handleFrame skipped - not running');
+        if (this.status !== 'running') return;
+
+        // Increment frame ID - this invalidates any in-progress processing
+        this.currentFrameId++;
+        const thisFrameId = this.currentFrameId;
+
+        this.stats.framesReceived++;
+        console.log(`[PIPELINE] 📥 Frame #${this.stats.framesReceived} (ID: ${thisFrameId})`);
+
+        // Clear overlay immediately - screen has changed
+        overlayService.updateOverlay([]);
+
+        // If already processing, save this frame for later
+        if (this.isProcessing) {
+            console.log(`[PIPELINE] ⏳ Busy, queuing frame for after current completes`);
+            this.pendingFrame = frame;
             return;
         }
-        this.stats.framesReceived++;
-        console.log(`RealtimePipeline: Frame received #${this.stats.framesReceived}, path: ${frame.path}`);
 
-        // Debounce to improve performance and avoid flickering
-        if (this.debounceTimer) clearTimeout(this.debounceTimer);
-        this.debounceTimer = setTimeout(() => {
-            console.log('RealtimePipeline: Debounce complete, processing frame...');
-            this.processFrame(frame);
-        }, this.config.debounceMs);
+        this.processFrame(frame, thisFrameId);
     };
 
-    private async processFrame(frame: FrameData): Promise<void> {
-        console.log(`RealtimePipeline: processFrame start, timestamp: ${frame.timestamp}, lastTimestamp: ${this.lastFrameTimestamp}`);
-
-        if (frame.timestamp < this.lastFrameTimestamp) {
-            console.log('RealtimePipeline: Frame skipped - older than last processed');
-            return;
-        }
-        this.lastFrameTimestamp = frame.timestamp;
-
-        // Clean up old tasks if queue is too long
-        if (this.pendingOCRTasks.length >= (this.config.maxPendingOCR || 2)) {
-            const oldest = this.pendingOCRTasks.shift();
-            if (oldest) oldest.cancelled = true;
-            console.log('RealtimePipeline: Dropped old OCR task (queue full)');
-        }
-
-        const ocrTask: PendingOCRTask = { frame, cancelled: false };
-        this.pendingOCRTasks.push(ocrTask);
+    private async processFrame(frame: FrameData, frameId: number): Promise<void> {
+        this.isProcessing = true;
+        const startTime = Date.now();
 
         try {
-            console.log(`RealtimePipeline: Starting OCR for ${frame.path}, script: ${this.config.script}`);
+            // OCR
+            console.log(`[PIPELINE] 🔍 OCR START (Frame ID: ${frameId})`);
+            const ocrStart = Date.now();
             const blocks = await textDetectionService.detectText(frame.path, this.config.script);
-            console.log(`RealtimePipeline: OCR returned ${blocks?.length || 0} blocks`);
+            console.log(`[PIPELINE] 🔍 OCR DONE | ${blocks?.length || 0} blocks | ${Date.now() - ocrStart}ms`);
 
-            if (ocrTask.cancelled || this.status !== 'running') {
-                console.log('RealtimePipeline: OCR task cancelled or stopped');
+            // Check if this frame is still current
+            if (frameId !== this.currentFrameId) {
+                console.log(`[PIPELINE] ⏭️ Frame ${frameId} outdated (current: ${this.currentFrameId}), discarding`);
                 return;
             }
+
+            if (this.status !== 'running') return;
             this.stats.ocrCompleted++;
-            this.cleanupTask(ocrTask, this.pendingOCRTasks);
 
             if (!blocks || blocks.length === 0) {
-                console.log('RealtimePipeline: No text detected, clearing overlay');
-                overlayService.updateOverlay([]); // Clear overlay if no text
+                console.log(`[PIPELINE] 📭 No text found`);
                 return;
             }
 
-            console.log(`RealtimePipeline: Detected ${blocks.length} text blocks, starting translation...`);
-            blocks.forEach((b, i) => console.log(`  Block ${i}: "${b.text.substring(0, 30)}..."`));
+            // Log detected text
+            console.log(`[PIPELINE] 📝 Detected:`);
+            blocks.slice(0, 3).forEach((b, i) => console.log(`   [${i}] "${b.text.substring(0, 50)}"`));
 
-            this.processTranslation(blocks, frame.timestamp);
-        } catch (error) {
-            console.error('RealtimePipeline: OCR failed', error);
-            this.cleanupTask(ocrTask, this.pendingOCRTasks);
-        }
-    }
-
-    private async processTranslation(blocks: TextBlock[], timestamp: number): Promise<void> {
-        console.log(`RealtimePipeline: processTranslation start, ${blocks.length} blocks`);
-
-        if (this.pendingTranslationTasks.length >= (this.config.maxPendingTranslation || 2)) {
-            const oldest = this.pendingTranslationTasks.shift();
-            if (oldest) oldest.cancelled = true;
-            console.log('RealtimePipeline: Dropped old translation task (queue full)');
-        }
-
-        const translationTask: PendingTranslationTask = { blocks, timestamp, cancelled: false };
-        this.pendingTranslationTasks.push(translationTask);
-
-        try {
-            console.log(`RealtimePipeline: Calling TranslationManager.translate...`);
+            // Translate
+            console.log(`[PIPELINE] 🌐 TRANSLATE START`);
+            const transStart = Date.now();
             const response = await TranslationManager.translate({
                 items: blocks.map((b, i) => ({ id: `${i}`, text: b.text })),
                 sourceLanguage: this.config.sourceLanguage === 'auto' ? undefined : this.config.sourceLanguage,
@@ -188,46 +135,42 @@ class RealtimePipelineService {
                 strategy: 'MLKIT',
                 saveHistory: false,
             });
-            console.log(`RealtimePipeline: Translation returned, ${response.results?.length || 0} results`);
+            console.log(`[PIPELINE] 🌐 TRANSLATE DONE | ${response.results?.length || 0} results | ${Date.now() - transStart}ms`);
 
-            if (translationTask.cancelled || this.status !== 'running') {
-                console.log('RealtimePipeline: Translation task cancelled or stopped');
+            // Check AGAIN if this frame is still current after translation
+            if (frameId !== this.currentFrameId) {
+                console.log(`[PIPELINE] ⏭️ Frame ${frameId} outdated after translate (current: ${this.currentFrameId}), discarding`);
                 return;
             }
-            this.stats.translationsCompleted++;
-            this.cleanupTask(translationTask, this.pendingTranslationTasks);
 
+            if (this.status !== 'running') return;
+            this.stats.translationsCompleted++;
+
+            // Build translated blocks
             const translatedBlocks = blocks.map((block, index) => {
                 const translation = response.results?.find(r => r.id === `${index}`);
                 return { ...block, text: translation ? translation.t : block.text };
             });
 
-            console.log(`RealtimePipeline: Updating overlay with ${translatedBlocks.length} blocks`);
-            translatedBlocks.forEach((b, i) => console.log(`  Translated ${i}: "${b.text.substring(0, 30)}..."`));
-
+            // Update overlay
+            console.log(`[PIPELINE] 📤 OVERLAY UPDATE (Frame ID: ${frameId})`);
+            translatedBlocks.slice(0, 2).forEach((b, i) => console.log(`   [${i}] "${b.text.substring(0, 50)}"`));
             overlayService.updateOverlay(translatedBlocks);
-            this.stats.overlayUpdates++;
-            console.log('RealtimePipeline: Overlay updated successfully');
+
+            console.log(`[PIPELINE] ✅ COMPLETE | Total: ${Date.now() - startTime}ms`);
         } catch (error) {
-            console.error('RealtimePipeline: Translation failed', error);
-            this.cleanupTask(translationTask, this.pendingTranslationTasks);
+            console.error(`[PIPELINE] ❌ ERROR:`, error);
+        } finally {
+            this.isProcessing = false;
+
+            // Check if there's a pending frame to process
+            if (this.pendingFrame && this.status === 'running') {
+                const nextFrame = this.pendingFrame;
+                this.pendingFrame = null;
+                console.log(`[PIPELINE] 🔄 Processing pending frame`);
+                this.processFrame(nextFrame, this.currentFrameId);
+            }
         }
-    }
-
-    private cleanupTask<T>(task: T, queue: T[]): void {
-        const index = queue.indexOf(task);
-        if (index > -1) queue.splice(index, 1);
-    }
-
-    private cancelAllPendingTasks(): void {
-        this.pendingOCRTasks.forEach(t => t.cancelled = true);
-        this.pendingTranslationTasks.forEach(t => t.cancelled = true);
-        this.pendingOCRTasks = [];
-        this.pendingTranslationTasks = [];
-    }
-
-    private resetStats(): void {
-        this.stats = { framesReceived: 0, ocrCompleted: 0, translationsCompleted: 0, overlayUpdates: 0 };
     }
 }
 
