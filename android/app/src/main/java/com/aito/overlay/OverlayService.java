@@ -33,8 +33,10 @@ public class OverlayService extends Service {
     private WindowManager windowManager;
     private View logoView;
     private View navbarView;
+    private OverlayView translationView;  // New: touch-through translation overlay
     private WindowManager.LayoutParams logoParams;
     private WindowManager.LayoutParams navbarParams;
+    private WindowManager.LayoutParams translationParams;  // New: translation view params
     
     private static final String TAG = "OverlayService";
     private static final String CHANNEL_ID = "overlay_channel";
@@ -123,6 +125,7 @@ public class OverlayService extends Service {
         
         createLogoView();
         createNavbarView();
+        createTranslationView();  // New: create touch-through translation overlay
     }
     
     private void createLogoView() {
@@ -202,6 +205,70 @@ public class OverlayService extends Service {
 
         navbarParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
         navbarParams.y = navbarTopMarginPx;
+    }
+    
+    private void createTranslationView() {
+        translationView = new OverlayView(this);
+
+        int layoutFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? 
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : 
+            WindowManager.LayoutParams.TYPE_PHONE;
+
+        translationParams = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                layoutFlag,
+                // FLAG_NOT_TOUCHABLE allows touch pass-through to apps beneath
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+
+        translationParams.gravity = Gravity.TOP | Gravity.START;
+    }
+    
+    public void showTranslation() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (translationView.getParent() == null) {
+                    windowManager.addView(translationView, translationParams);
+                }
+                Log.d(TAG, "Translation overlay shown");
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing translation overlay", e);
+            }
+        });
+    }
+    
+    public void hideTranslation() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (translationView != null && translationView.getParent() != null) {
+                    windowManager.removeView(translationView);
+                }
+                Log.d(TAG, "Translation overlay hidden");
+            } catch (Exception e) {
+                Log.e(TAG, "Error hiding translation overlay", e);
+            }
+        });
+    }
+    
+    public void updateTranslationBlocks(final String jsonBlocks) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (translationView != null) {
+                    // Show translation view if not already shown
+                    if (translationView.getParent() == null) {
+                        windowManager.addView(translationView, translationParams);
+                    }
+                    translationView.updateBlocks(jsonBlocks);
+                    Log.d(TAG, "Translation blocks updated: " + jsonBlocks.length() + " chars");
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error updating translation blocks", e);
+            }
+        });
     }
     
     private void drawLogo(Canvas canvas) {
@@ -426,6 +493,9 @@ public class OverlayService extends Service {
             }
             if (navbarView != null && navbarView.getParent() != null) {
                 windowManager.removeView(navbarView);
+            }
+            if (translationView != null && translationView.getParent() != null) {
+                windowManager.removeView(translationView);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in onDestroy", e);

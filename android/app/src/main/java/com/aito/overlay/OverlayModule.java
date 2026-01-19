@@ -65,11 +65,15 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
             getReactApplicationContext().startService(intent);
         }
 
-        // Setup listeners when service starts
+        // Setup listeners and update translation blocks when service is ready
         new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override
             public void run() {
                 setupServiceListeners();
+                // Update translation blocks on the service
+                if (OverlayService.instance != null && text != null && !text.isEmpty()) {
+                    OverlayService.instance.updateTranslationBlocks(text);
+                }
             }
         }, 500);
     }
@@ -135,6 +139,20 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     public void setNavbarConfig(String mode, String sourceLang, String targetLang) {
         if (OverlayService.instance != null) {
             OverlayService.instance.setNavbarConfig(mode, sourceLang, targetLang);
+        }
+    }
+    
+    @ReactMethod
+    public void showTranslation() {
+        if (OverlayService.instance != null) {
+            OverlayService.instance.showTranslation();
+        }
+    }
+    
+    @ReactMethod
+    public void hideTranslation() {
+        if (OverlayService.instance != null) {
+            OverlayService.instance.hideTranslation();
         }
     }
 

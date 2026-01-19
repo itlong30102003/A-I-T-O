@@ -100,6 +100,22 @@ class OverlayService {
     }
 
     /**
+     * Show translation overlay (touch pass-through).
+     */
+    showTranslation(): void {
+        if (!this.isSupported) return;
+        OverlayModule.showTranslation();
+    }
+
+    /**
+     * Hide translation overlay.
+     */
+    hideTranslation(): void {
+        if (!this.isSupported) return;
+        OverlayModule.hideTranslation();
+    }
+
+    /**
      * Subscribe to logo click events.
      */
     onLogoClick(callback: () => void): () => void {
