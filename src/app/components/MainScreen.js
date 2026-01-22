@@ -576,31 +576,7 @@ export default function MainScreen({ onLogout }) {
                         </>
                     )}
 
-                    {/* Selection Mode Test Button */}
-                    {translationMode === 'SELECTION' && (
-                        <TouchableOpacity
-                            style={styles.buttonTest}
-                            onPress={async () => {
-                                try {
-                                    const hasPermission = await overlayService.checkPermission();
-                                    if (!hasPermission) {
-                                        Alert.alert('Quyền Overlay', 'Hãy cấp quyền overlay để test.');
-                                        overlayService.requestPermission();
-                                        return;
-                                    }
 
-                                    await overlayService.start('[]');
-                                    overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
-                                    overlayService.showLogo();
-                                    Alert.alert('Test Overlay', 'Logo đã hiện góc phải dưới! Click logo để toggle navbar.');
-                                } catch (e) {
-                                    Alert.alert('Lỗi', e.message);
-                                }
-                            }}
-                        >
-                            <Text style={styles.buttonText}>🎯 Hiện Logo Test</Text>
-                        </TouchableOpacity>
-                    )}
                 </View>
             )}
 
