@@ -70,6 +70,16 @@
               android:value="Displaying translated text overlays on top of other applications in real-time." />
       </service>
 
+      <!-- Selection Mode Service -->
+      <service
+          android:name=".overlay.SelectionModeService"
+          android:enabled="true"
+          android:exported="false"
+          android:foregroundServiceType="specialUse">
+          <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_TYPE"
+              android:value="Text selection overlay for translation in selection mode." />
+      </service>
+
       <!-- Native Libraries for AI Acceleration (S22 Ultra / Snapdragon) -->
       <uses-native-library
           android:name="libcdsprpc.so"

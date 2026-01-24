@@ -2,6 +2,18 @@ import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
 
 const { OverlayModule } = NativeModules;
 
+export interface WordTapEvent {
+    x: number;
+    y: number;
+}
+
+export interface ParagraphSelectEvent {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
 class OverlayService {
     isSupported: boolean;
     private emitter: NativeEventEmitter | null = null;
@@ -164,6 +176,8 @@ class OverlayService {
             console.error('Error stopping overlay:', error);
         }
     }
+
 }
 
 export const overlayService = new OverlayService();
+

@@ -15,6 +15,11 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
+/**
+ * OverlayModule - React Native bridge for OverlayService.
+ * Handles general overlay permissions, logo visibility, navbar, and translation display.
+ * Selection mode is now handled by SelectionModeModule.
+ */
 public class OverlayModule extends ReactContextBaseJavaModule implements ActivityEventListener {
     private static final int DRAW_OVER_OTHER_APP_PERMISSION_REQUEST_CODE = 1234;
     private Promise permissionPromise;
@@ -65,15 +70,10 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
             getReactApplicationContext().startService(intent);
         }
 
-        // Setup listeners and update translation blocks when service is ready
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                setupServiceListeners();
-                // Update translation blocks on the service
-                if (OverlayService.instance != null && text != null && !text.isEmpty()) {
-                    OverlayService.instance.updateTranslationBlocks(text);
-                }
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            setupServiceListeners();
+            if (OverlayService.instance != null && text != null && !text.isEmpty()) {
+                OverlayService.instance.updateTranslationBlocks(text);
             }
         }, 500);
     }
@@ -81,12 +81,7 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     private void setupServiceListeners() {
         if (OverlayService.instance == null) return;
         
-        OverlayService.instance.setOnLogoClickListener(new OverlayService.OnLogoClickListener() {
-            @Override
-            public void onClick() {
-                emitEvent("onOverlayLogoClick", null);
-            }
-        });
+        OverlayService.instance.setOnLogoClickListener(() -> emitEvent("onOverlayLogoClick", null));
         
         OverlayService.instance.setOnNavbarEventListener(new OverlayService.OnNavbarEventListener() {
             @Override
@@ -102,37 +97,28 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     }
     
     private void emitEvent(String eventName, Object data) {
-        getReactApplicationContext()
-            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-            .emit(eventName, data);
-    }
-
-    @ReactMethod
-    public void setInteractionEnabled(boolean enabled) {
-        if (OverlayService.instance != null) {
-            OverlayService.instance.setInteractionEnabled(enabled);
+        try {
+            getReactApplicationContext()
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit(eventName, data);
+        } catch (Exception e) {
+            // Context might not be ready
         }
     }
 
     @ReactMethod
     public void showLogo() {
-        if (OverlayService.instance != null) {
-            OverlayService.instance.showLogo();
-        }
+        if (OverlayService.instance != null) OverlayService.instance.showLogo();
     }
 
     @ReactMethod
     public void hideLogo() {
-        if (OverlayService.instance != null) {
-            OverlayService.instance.hideLogo();
-        }
+        if (OverlayService.instance != null) OverlayService.instance.hideLogo();
     }
     
     @ReactMethod
     public void toggleNavbar() {
-        if (OverlayService.instance != null) {
-            OverlayService.instance.toggleNavbar();
-        }
+        if (OverlayService.instance != null) OverlayService.instance.toggleNavbar();
     }
     
     @ReactMethod
@@ -144,16 +130,12 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     
     @ReactMethod
     public void showTranslation() {
-        if (OverlayService.instance != null) {
-            OverlayService.instance.showTranslation();
-        }
+        if (OverlayService.instance != null) OverlayService.instance.showTranslation();
     }
     
     @ReactMethod
     public void hideTranslation() {
-        if (OverlayService.instance != null) {
-            OverlayService.instance.hideTranslation();
-        }
+        if (OverlayService.instance != null) OverlayService.instance.hideTranslation();
     }
 
     @ReactMethod
@@ -163,14 +145,10 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     }
     
     @ReactMethod
-    public void addListener(String eventName) {
-        // Required for RN EventEmitter
-    }
+    public void addListener(String eventName) {}
 
     @ReactMethod
-    public void removeListeners(int count) {
-        // Required for RN EventEmitter
-    }
+    public void removeListeners(int count) {}
 
     @Override
     public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
@@ -185,7 +163,5 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     }
 
     @Override
-    public void onNewIntent(Intent intent) {
-        // Not used
-    }
+    public void onNewIntent(Intent intent) {}
 }

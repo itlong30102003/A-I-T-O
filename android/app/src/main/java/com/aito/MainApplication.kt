@@ -10,6 +10,7 @@ import com.aito.screencapture.ScreenCapturePackage
 import com.aito.textdetection.TextDetectionPackage
 import com.aito.device.DevicePackage
 import com.aito.overlay.OverlayPackage
+import com.aito.overlay.SelectionModePackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -23,6 +24,7 @@ class MainApplication : Application(), ReactApplication {
           add(TextDetectionPackage())
           add(DevicePackage())
           add(OverlayPackage())
+          add(SelectionModePackage())
         },
     )
   }

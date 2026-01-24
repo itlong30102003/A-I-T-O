@@ -17,6 +17,7 @@ import { ocrPipelineService } from '../services/OCRPipelineService';
 import TranslationManager from '../services/TranslationManager';
 import { overlayService } from '../services/OverlayService';
 import { realtimePipelineService } from '../services/RealtimePipelineService';
+import { selectionPipelineService } from '../services/SelectionPipelineService';
 import { mlKitTranslationService } from '../services/MLKitTranslationService';
 
 const LANGUAGES = {
@@ -47,6 +48,9 @@ export default function MainScreen({ onLogout }) {
     const [showLanguageModal, setShowLanguageModal] = useState(null); // 'source' | 'target' | null
     const [showResultModal, setShowResultModal] = useState(false);
     const [selectedText, setSelectedText] = useState('Nội dung sẽ được dịch ở đây...');
+
+    // Selection Mode State
+    const [selectionType, setSelectionType] = useState('WORD'); // 'WORD' | 'PARAGRAPH'
 
     // Model Loading State
     const [modelLoadingStatus, setModelLoadingStatus] = useState({
@@ -85,9 +89,14 @@ export default function MainScreen({ onLogout }) {
             setCaptureState(state);
         });
 
-        // Subscribe to logo clicks (toggles navbar internally)
+        // Subscribe to logo clicks - handle toggle based on current mode
         const unsubsLogo = overlayService.onLogoClick(() => {
-            console.log('MainScreen: Logo clicked - navbar toggled');
+            console.log('MainScreen: Logo clicked, current mode:', translationMode);
+            if (translationMode === 'SELECTION') {
+                selectionPipelineService.toggleOverlay();
+            } else {
+                overlayService.toggleNavbar();
+            }
         });
 
         // Subscribe to navbar source language click
@@ -110,7 +119,7 @@ export default function MainScreen({ onLogout }) {
             unsubsTargetLang();
             screenCaptureService.cleanup();
         };
-    }, []);
+    }, [translationMode]);
 
     // Preload ML Kit translation models on startup
     useEffect(() => {
@@ -165,8 +174,15 @@ export default function MainScreen({ onLogout }) {
                     maxPendingOCR: 2,
                     maxPendingTranslation: 2,
                 });
+            } else if (translationMode === 'SELECTION') {
+                console.log('MainScreen: --> Selection Pipeline Start');
+                selectionPipelineService.start(selectionType, {
+                    sourceLanguage: sourceLang.code,
+                    targetLanguage: targetLang.code,
+                    script,
+                });
             } else {
-                console.log('MainScreen: --> OCR Pipeline Start (Selection Mode)');
+                console.log('MainScreen: --> OCR Pipeline Start (Camera Mode)');
                 ocrPipelineService.start(script);
             }
         };
@@ -175,6 +191,7 @@ export default function MainScreen({ onLogout }) {
             startPipelines();
         } else {
             realtimePipelineService.stop();
+            selectionPipelineService.stop();
             ocrPipelineService.stop();
             overlayService.stop();
         }
@@ -186,10 +203,11 @@ export default function MainScreen({ onLogout }) {
             // Only stop if we are actually stopping capture
             if (!screenCaptureService.state.isCapturing) {
                 realtimePipelineService.stop();
+                selectionPipelineService.stop();
                 ocrPipelineService.stop();
             }
         };
-    }, [captureState.isCapturing, translationMode, sourceLang.code, targetLang.code]);
+    }, [captureState.isCapturing, translationMode, selectionType, sourceLang.code, targetLang.code]);
 
     // Sync navbar config when mode or language changes
     useEffect(() => {
@@ -456,6 +474,44 @@ export default function MainScreen({ onLogout }) {
                 <Text style={styles.modeDescription}>
                     {MODES.find(m => m.id === translationMode)?.desc}
                 </Text>
+
+                {/* Selection Type Selector - Only show when SELECTION mode is active */}
+                {translationMode === 'SELECTION' && (
+                    <View style={styles.selectionTypeContainer}>
+                        <Text style={styles.selectionTypeLabel}>Loại chọn:</Text>
+                        <View style={styles.selectionTypeRow}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.selectionTypeBtn,
+                                    selectionType === 'WORD' && styles.selectionTypeBtnActive
+                                ]}
+                                onPress={() => setSelectionType('WORD')}
+                            >
+                                <Text style={[
+                                    styles.selectionTypeBtnText,
+                                    selectionType === 'WORD' && styles.selectionTypeBtnTextActive
+                                ]}>🔤 Từ đơn</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.selectionTypeBtn,
+                                    selectionType === 'PARAGRAPH' && styles.selectionTypeBtnActive
+                                ]}
+                                onPress={() => setSelectionType('PARAGRAPH')}
+                            >
+                                <Text style={[
+                                    styles.selectionTypeBtnText,
+                                    selectionType === 'PARAGRAPH' && styles.selectionTypeBtnTextActive
+                                ]}>📄 Đoạn văn</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.selectionTypeHint}>
+                            {selectionType === 'WORD'
+                                ? '👆 Chạm vào từ bạn muốn dịch'
+                                : '✋ Kéo để chọn vùng văn bản'}
+                        </Text>
+                    </View>
+                )}
             </View>
 
             {/* Language Selector */}
@@ -1053,5 +1109,51 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#888',
         fontStyle: 'italic',
-    }
+    },
+    // Selection Type Styles
+    selectionTypeContainer: {
+        marginTop: 16,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#f0f0f0',
+    },
+    selectionTypeLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 8,
+    },
+    selectionTypeRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    selectionTypeBtn: {
+        flex: 1,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 10,
+        backgroundColor: '#f5f5f5',
+        borderWidth: 2,
+        borderColor: 'transparent',
+        alignItems: 'center',
+    },
+    selectionTypeBtnActive: {
+        backgroundColor: '#e3f2fd',
+        borderColor: '#2196F3',
+    },
+    selectionTypeBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#666',
+    },
+    selectionTypeBtnTextActive: {
+        color: '#2196F3',
+    },
+    selectionTypeHint: {
+        fontSize: 12,
+        color: '#888',
+        marginTop: 10,
+        textAlign: 'center',
+        fontStyle: 'italic',
+    },
 });
