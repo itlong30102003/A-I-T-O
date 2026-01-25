@@ -271,9 +271,18 @@ public class SelectionModeService extends Service {
     public void showResultPopup(final String originalText, final String translatedText, final int hintX, final int hintY) {
         new Handler(Looper.getMainLooper()).post(() -> {
             try {
-                // Hide selection overlay while showing popup
+                // Hide selection overlay completely when showing popup
                 if (selectionView != null) {
                     selectionView.setActive(false);
+                    if (selectionView.getParent() != null) {
+                        windowManager.removeView(selectionView);
+                    }
+                }
+                isOverlayVisible = false;
+                
+                // Notify JS side that overlay is hidden
+                if (listener != null) {
+                    listener.onOverlayToggled(false);
                 }
                 
                 // Show result popup
@@ -282,7 +291,7 @@ public class SelectionModeService extends Service {
                 }
                 resultPopupView.show(originalText, translatedText, hintX, hintY);
                 
-                Log.d(TAG, "Result popup shown");
+                Log.d(TAG, "Result popup shown, overlay hidden");
             } catch (Exception e) {
                 Log.e(TAG, "Error showing result popup", e);
             }
@@ -302,15 +311,11 @@ public class SelectionModeService extends Service {
                     }
                 }
                 
-                // Re-enable selection overlay if it was visible
-                if (isOverlayVisible && selectionView != null) {
-                    if (selectionView.getParent() == null) {
-                        windowManager.addView(selectionView, selectionParams);
-                    }
-                    selectionView.setActive(true);
-                }
+                // DO NOT re-enable selection overlay automatically
+                // User must tap logo again to start new selection
+                // This prevents accidental re-drawing and ensures clean state
                 
-                Log.d(TAG, "Result popup hidden");
+                Log.d(TAG, "Result popup hidden, waiting for user to tap logo for new selection");
             } catch (Exception e) {
                 Log.e(TAG, "Error hiding result popup", e);
             }

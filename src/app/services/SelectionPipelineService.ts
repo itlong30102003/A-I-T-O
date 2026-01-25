@@ -155,6 +155,11 @@ class SelectionPipelineService {
 
         this.status = 'processing';
         this.stats.selectionsProcessed++;
+
+        // Hide overlay immediately so user cannot tap again while processing
+        selectionModeService.hideOverlay();
+        console.log('[SELECTION] Overlay hidden after tap');
+
         const { x, y } = event;
 
         console.log(`[SELECTION] 👆 Word tapped at (${x}, ${y})`);
@@ -234,6 +239,11 @@ class SelectionPipelineService {
 
         this.status = 'processing';
         this.stats.selectionsProcessed++;
+
+        // Hide overlay immediately so user cannot draw again while processing
+        selectionModeService.hideOverlay();
+        console.log('[SELECTION] Overlay hidden after selection');
+
         const { x, y, width, height } = event;
 
         console.log(`[SELECTION] 📦 Paragraph selected: (${x}, ${y}) ${width}x${height}`);
