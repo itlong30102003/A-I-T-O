@@ -38,7 +38,6 @@ const LANGUAGES = {
 export default function MainScreen({ onLogout }) {
     const [user, setUser] = useState(null);
     const [captureState, setCaptureState] = useState(screenCaptureService.state);
-    const [isChangingApp, setIsChangingApp] = useState(false);
     const [duration, setDuration] = useState('00:00');
     const [translationMode, setTranslationMode] = useState('REALTIME'); // 'REALTIME' | 'SELECTION' | 'CAMERA'
 
@@ -119,6 +118,14 @@ export default function MainScreen({ onLogout }) {
             unsubsTargetLang();
             screenCaptureService.cleanup();
         };
+    }, [translationMode]);
+
+    // Auto-start Selection Mode when switching to SELECTION
+    useEffect(() => {
+        if (translationMode === 'SELECTION' && !captureState.isCapturing && !captureState.permissionGranted) {
+            console.log('MainScreen: Auto-starting Selection Mode...');
+            handleStartSelectionMode();
+        }
     }, [translationMode]);
 
     // Preload ML Kit translation models on startup
@@ -224,26 +231,21 @@ export default function MainScreen({ onLogout }) {
         }
     };
 
-    // Chọn app để capture
-    const handleSelectApp = async (isChanging = false) => {
+    // Chọn app để capture (for REALTIME mode)
+    const handleSelectApp = async () => {
         try {
-            if (isChanging) setIsChangingApp(true);
-
             const granted = await screenCaptureService.selectApp();
 
             if (!granted) {
                 Alert.alert(
                     'Quyền bị từ chối',
-                    isChanging
-                        ? 'Bạn đã hủy việc đổi app.'
-                        : 'Bạn cần cấp quyền để capture màn hình.',
+                    'Bạn cần cấp quyền để capture màn hình.',
                     [{ text: 'OK' }]
                 );
             } else {
                 // Tự động bắt đầu capture sau khi chọn app
                 try {
-                    await screenCaptureService.startCapture({ intervalMs: 1000 }); // Slower interval for realtime to avoid backlog
-                    // Không hiện alert - để user tiếp tục dùng app đã chọn
+                    await screenCaptureService.startCapture({ intervalMs: 1000 });
                 } catch (captureError) {
                     Alert.alert('Lỗi', captureError.message || 'Không thể bắt đầu capture');
                 }
@@ -251,8 +253,6 @@ export default function MainScreen({ onLogout }) {
         } catch (error) {
             const isPermissionDenied = error.message?.includes('PERMISSION_DENIED');
             Alert.alert('Lỗi', isPermissionDenied ? 'Bạn đã hủy việc chọn app.' : error.message);
-        } finally {
-            setIsChangingApp(false);
         }
     };
 
@@ -266,11 +266,46 @@ export default function MainScreen({ onLogout }) {
                     : 'Bạn có muốn chọn app khác để capture?',
                 [
                     { text: 'Hủy', style: 'cancel' },
-                    { text: 'Đổi App', onPress: () => handleSelectApp(true) }
+                    { text: 'Đổi App', onPress: handleSelectApp }
                 ]
             );
         } else {
             Alert.alert('Không hỗ trợ', 'Cần Android 14+ để chọn app cụ thể.', [{ text: 'OK' }]);
+        }
+    };
+
+    // Bắt đầu Selection Mode (tự động capture entire screen)
+    const handleStartSelectionMode = async () => {
+        // Check overlay permission first
+        const hasOverlayPermission = await overlayService.checkPermission();
+        if (!hasOverlayPermission) {
+            Alert.alert(
+                'Quyền Overlay',
+                'Ứng dụng cần quyền "Hiển thị trên các ứng dụng khác" để hiển thị bản dịch.',
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    { text: 'Cấp quyền', onPress: () => overlayService.requestPermission() }
+                ]
+            );
+            return;
+        }
+
+        try {
+            // Request entire screen capture (no app selection dialog)
+            console.log('📺 Starting Selection Mode with Entire Screen...');
+            const granted = await screenCaptureService.selectEntireScreen();
+
+            if (!granted) {
+                Alert.alert('Quyền bị từ chối', 'Bạn cần cấp quyền để capture màn hình.', [{ text: 'OK' }]);
+                return;
+            }
+
+            // Auto start capture
+            await screenCaptureService.startCapture({ intervalMs: 1000 });
+            console.log('✅ Selection Mode started with entire screen capture');
+        } catch (error) {
+            const isPermissionDenied = error.message?.includes('PERMISSION_DENIED');
+            Alert.alert('Lỗi', isPermissionDenied ? 'Bạn đã hủy việc cấp quyền.' : error.message);
         }
     };
 
@@ -475,10 +510,10 @@ export default function MainScreen({ onLogout }) {
                     {MODES.find(m => m.id === translationMode)?.desc}
                 </Text>
 
-                {/* Selection Type Selector - Only show when SELECTION mode is active */}
+                {/* Selection Type - Only show for SELECTION mode */}
                 {translationMode === 'SELECTION' && (
                     <View style={styles.selectionTypeContainer}>
-                        <Text style={styles.selectionTypeLabel}>Loại chọn:</Text>
+                        <Text style={styles.selectionTypeLabel}>📌 Kiểu chọn:</Text>
                         <View style={styles.selectionTypeRow}>
                             <TouchableOpacity
                                 style={[
@@ -490,7 +525,7 @@ export default function MainScreen({ onLogout }) {
                                 <Text style={[
                                     styles.selectionTypeBtnText,
                                     selectionType === 'WORD' && styles.selectionTypeBtnTextActive
-                                ]}>🔤 Từ đơn</Text>
+                                ]}>📝 Từ</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[
@@ -507,11 +542,12 @@ export default function MainScreen({ onLogout }) {
                         </View>
                         <Text style={styles.selectionTypeHint}>
                             {selectionType === 'WORD'
-                                ? '👆 Chạm vào từ bạn muốn dịch'
-                                : '✋ Kéo để chọn vùng văn bản'}
+                                ? '💡 Chạm vào từ để dịch'
+                                : '💡 Vẽ vùng chọn để dịch đoạn văn'}
                         </Text>
                     </View>
                 )}
+
             </View>
 
             {/* Language Selector */}
@@ -539,8 +575,8 @@ export default function MainScreen({ onLogout }) {
             </View>
 
 
-            {/* Screen Capture Controls - Only show for REALTIME or SELECTION */}
-            {translationMode !== 'CAMERA' && (
+            {/* Screen Capture Controls - Only show for REALTIME mode */}
+            {translationMode === 'REALTIME' && (
                 <View style={styles.captureSection}>
                     <Text style={styles.sectionTitle}>🎥 Screen Capture</Text>
 
@@ -575,19 +611,11 @@ export default function MainScreen({ onLogout }) {
                         )}
                     </View>
 
-                    {/* Loading indicator when changing app */}
-                    {isChangingApp && (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="small" color="#4285F4" />
-                            <Text style={styles.loadingText}>Đang đổi app...</Text>
-                        </View>
-                    )}
-
                     {/* Step 1: Select App Button - Show when no permission */}
-                    {!permissionGranted && !isCapturing && !isChangingApp && (
+                    {!permissionGranted && !isCapturing && (
                         <TouchableOpacity
                             style={styles.buttonPrimary}
-                            onPress={() => handleSelectApp(false)}
+                            onPress={handleSelectApp}
                         >
                             <Text style={styles.buttonText}>
                                 {androidInfo?.supportsAppSelection
@@ -598,7 +626,7 @@ export default function MainScreen({ onLogout }) {
                     )}
 
                     {/* Step 2: Control Buttons - Show after app selected */}
-                    {permissionGranted && !isChangingApp && (
+                    {permissionGranted && (
                         <>
                             <View style={styles.buttonRow}>
                                 <TouchableOpacity
@@ -636,32 +664,7 @@ export default function MainScreen({ onLogout }) {
                 </View>
             )}
 
-            {/* Live Preview */}
-            {latestFrame && (
-                <View style={styles.framesSection}>
-                    <Text style={styles.sectionTitle}>📺 Live Preview</Text>
-                    <View style={styles.previewContainer}>
-                        <Image
-                            key={latestFrame.timestamp}
-                            source={{ uri: `file://${latestFrame.path}?t=${latestFrame.timestamp}` }}
-                            style={styles.livePreviewImage}
-                            resizeMode="contain"
-                        />
-                        <View style={styles.previewOverlay}>
-                            <View style={styles.liveIndicator}>
-                                <View style={styles.liveDot} />
-                                <Text style={styles.liveText}>LIVE</Text>
-                            </View>
-                        </View>
-                    </View>
-                    <Text style={styles.timestampText}>
-                        🕐 Cập nhật: {new Date(latestFrame.timestamp).toLocaleTimeString('vi-VN')}
-                    </Text>
-                    <Text style={styles.infoTextSmall}>
-                        💡 Preview tự động cập nhật khi nội dung thay đổi
-                    </Text>
-                </View>
-            )}
+
 
             {/* Logout Button */}
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -867,54 +870,6 @@ const styles = StyleSheet.create({
         color: '#4285F4',
         fontSize: 15,
         fontWeight: '600',
-    },
-    framesSection: {
-        backgroundColor: '#fff',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 16,
-    },
-    previewContainer: {
-        position: 'relative',
-    },
-    previewOverlay: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-    },
-    liveIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(234, 67, 53, 0.9)',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
-    },
-    liveDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#fff',
-        marginRight: 4,
-    },
-    liveText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    livePreviewImage: {
-        width: '100%',
-        height: 400,
-        borderRadius: 8,
-        borderWidth: 2,
-        borderColor: '#4285F4',
-        backgroundColor: '#000',
-    },
-    timestampText: {
-        fontSize: 12,
-        color: '#888',
-        textAlign: 'center',
-        marginTop: 8,
     },
     logoutButton: {
         backgroundColor: '#666',

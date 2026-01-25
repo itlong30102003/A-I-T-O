@@ -93,6 +93,50 @@ class ScreenCaptureModule(reactContext: ReactApplicationContext) :
     }
     
     /**
+     * Request permission for ENTIRE SCREEN capture (no app selection)
+     * On Android 14+, uses createConfigForDefaultDisplay() to FORCE entire screen option only
+     * This hides the "A single app" dropdown completely
+     */
+    @ReactMethod
+    fun requestEntireScreenPermission(promise: Promise) {
+        val activity = reactApplicationContext.currentActivity
+        if (activity == null) {
+            Log.e(TAG, "Activity is null, cannot request permission")
+            promise.reject("ERROR", "Activity is null")
+            return
+        }
+        
+        if (pendingPromise != null) {
+            Log.w(TAG, "Permission request already in progress")
+            promise.reject("ERROR", "Permission request already in progress")
+            return
+        }
+        
+        pendingPromise = promise
+        
+        try {
+            // On Android 14+, use createConfigForDefaultDisplay() to force entire screen only
+            // This removes the "A single app" option entirely
+            val captureIntent = if (Build.VERSION.SDK_INT >= ANDROID_14_API_LEVEL) {
+                Log.d(TAG, "Android 14+: Using createConfigForDefaultDisplay() to force entire screen")
+                val config = MediaProjectionConfig.createConfigForDefaultDisplay()
+                projectionManager.createScreenCaptureIntent(config)
+            } else {
+                Log.d(TAG, "Android < 14: Using standard createScreenCaptureIntent()")
+                projectionManager.createScreenCaptureIntent()
+            }
+            
+            activity.startActivityForResult(captureIntent, REQUEST_MEDIA_PROJECTION)
+            Log.d(TAG, "MediaProjection permission dialog launched (entire screen mode)")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error requesting permission: ${e.message}", e)
+            pendingPromise = null
+            promise.reject("ERROR", "Failed to request permission: ${e.message}")
+        }
+    }
+    
+    /**
      * Get Android version info
      */
     @ReactMethod

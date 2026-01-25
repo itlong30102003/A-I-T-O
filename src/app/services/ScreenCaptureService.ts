@@ -141,6 +141,31 @@ class ScreenCaptureService {
     }
 
     /**
+     * Capture toàn màn hình (không cho chọn app) - dùng cho Selection Mode
+     */
+    async selectEntireScreen(): Promise<boolean> {
+        if (Platform.OS !== 'android') {
+            return Promise.reject('Screen capture only available on Android');
+        }
+
+        try {
+            if (this._state.isCapturing) {
+                await this.stopCapture();
+            }
+
+            console.log('📺 Requesting ENTIRE SCREEN permission...');
+            const granted = await ScreenCaptureModule.requestEntireScreenPermission();
+
+            this.updateState({ permissionGranted: granted });
+            return granted;
+        } catch (error) {
+            console.error('❌ Error requesting entire screen permission:', error);
+            this.updateState({ permissionGranted: false });
+            throw error;
+        }
+    }
+
+    /**
      * Bắt đầu capture
      */
     async startCapture(options: CaptureOptions = { intervalMs: 500 }): Promise<void> {
