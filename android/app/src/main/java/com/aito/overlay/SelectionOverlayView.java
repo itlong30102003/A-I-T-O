@@ -11,6 +11,9 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * SelectionOverlayView - Interactive overlay for word/paragraph selection
  * 
@@ -36,10 +39,16 @@ public class SelectionOverlayView extends View {
     private Paint instructionPaint;
     private Paint instructionBgPaint;
     
+    // Pre-scan detected boxes (for WORD mode)
+    private List<RectF> detectedBoxes = new ArrayList<>();
+    private Paint detectedBoxPaint;
+    private Paint detectedBoxFillPaint;
+    
     // Dimensions
     private int screenWidth;
     private int screenHeight;
     private float density;
+    private int statusBarHeight = 0;
     
     // Listener
     private OnSelectionListener listener;
@@ -61,6 +70,19 @@ public class SelectionOverlayView extends View {
         density = dm.density;
         screenWidth = dm.widthPixels;
         screenHeight = dm.heightPixels;
+        
+        // Get status bar height for coordinate adjustment
+        int resourceId = context.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            statusBarHeight = context.getResources().getDimensionPixelSize(resourceId);
+        }
+        Log.d(TAG, "Status bar height: " + statusBarHeight + "px");
+        
+        // Enable fullscreen layout that covers status bar
+        setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        );
         
         initPaints();
     }
@@ -87,11 +109,54 @@ public class SelectionOverlayView extends View {
         instructionBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         instructionBgPaint.setColor(Color.argb(180, 0, 0, 0));
         instructionBgPaint.setStyle(Paint.Style.FILL);
+        
+        // Detected boxes stroke (cyan)
+        detectedBoxPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        detectedBoxPaint.setColor(Color.parseColor("#00BCD4")); // Cyan
+        detectedBoxPaint.setStyle(Paint.Style.STROKE);
+        detectedBoxPaint.setStrokeWidth(2.5f * density);
+        
+        // Detected boxes fill (very subtle)
+        detectedBoxFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        detectedBoxFillPaint.setColor(Color.argb(25, 0, 188, 212)); // Light cyan
+        detectedBoxFillPaint.setStyle(Paint.Style.FILL);
     }
     
     public void setMode(String mode) {
         this.mode = mode != null ? mode : "WORD";
+        // Clear detected boxes when switching modes
+        if (!"WORD".equals(this.mode)) {
+            detectedBoxes.clear();
+        }
         invalidate();
+    }
+    
+    /**
+     * Set detected text bounding boxes for WORD mode pre-scan
+     * @param boxes List of RectF representing text element bounding boxes
+     */
+    public void setDetectedBoxes(List<RectF> boxes) {
+        this.detectedBoxes.clear();
+        if (boxes != null) {
+            this.detectedBoxes.addAll(boxes);
+        }
+        Log.d(TAG, "Set " + this.detectedBoxes.size() + " detected boxes");
+        invalidate();
+    }
+    
+    /**
+     * Clear all detected boxes
+     */
+    public void clearDetectedBoxes() {
+        this.detectedBoxes.clear();
+        invalidate();
+    }
+    
+    /**
+     * Check if there are detected boxes available
+     */
+    public boolean hasDetectedBoxes() {
+        return !detectedBoxes.isEmpty();
     }
     
     public void setActive(boolean active) {
@@ -127,9 +192,12 @@ public class SelectionOverlayView extends View {
     
     private boolean handleWordModeTouchEvent(MotionEvent event, float x, float y) {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            Log.d(TAG, "Word tapped at: " + (int)x + ", " + (int)y);
+            // Convert screen Y back to bitmap Y by adding statusBarHeight
+            // This is needed because cached OCR blocks use bitmap coordinates
+            int bitmapY = (int)y + statusBarHeight;
+            Log.d(TAG, "Word tapped at screen: " + (int)x + ", " + (int)y + " -> bitmap: " + (int)x + ", " + bitmapY);
             if (listener != null) {
-                listener.onWordTapped((int)x, (int)y);
+                listener.onWordTapped((int)x, bitmapY);
             }
             return true;
         }
@@ -217,16 +285,44 @@ public class SelectionOverlayView extends View {
             drawCornerHandles(canvas);
         }
         
-        // Draw crosshair for WORD mode
-        if ("WORD".equals(mode)) {
+        // Draw detected boxes for WORD mode (pre-scan)
+        if ("WORD".equals(mode) && !detectedBoxes.isEmpty()) {
+            drawDetectedBoxes(canvas);
+        } else if ("WORD".equals(mode)) {
+            // Fallback: show center indicator if no boxes detected yet
             drawCenterIndicator(canvas);
+        }
+    }
+    
+    /**
+     * Draw pre-scanned detected text bounding boxes
+     * Note: Subtract statusBarHeight from Y because OCR coordinates are from bitmap
+     * which includes status bar area, but overlay draws from top of screen
+     */
+    private void drawDetectedBoxes(Canvas canvas) {
+        for (RectF box : detectedBoxes) {
+            // Adjust Y coordinate by subtracting status bar height
+            RectF adjustedBox = new RectF(
+                box.left,
+                box.top - statusBarHeight,
+                box.right,
+                box.bottom - statusBarHeight
+            );
+            // Draw subtle fill
+            canvas.drawRect(adjustedBox, detectedBoxFillPaint);
+            // Draw border
+            canvas.drawRect(adjustedBox, detectedBoxPaint);
         }
     }
     
     private void drawInstructionBanner(Canvas canvas) {
         String instruction;
         if ("WORD".equals(mode)) {
-            instruction = "👆 Chạm vào từ bạn muốn dịch";
+            if (!detectedBoxes.isEmpty()) {
+                instruction = "👆 Chạm vào khung để dịch (" + detectedBoxes.size() + " từ)";
+            } else {
+                instruction = "⏳ Đang quét văn bản...";
+            }
         } else {
             instruction = "✋ Kéo để chọn vùng văn bản";
         }

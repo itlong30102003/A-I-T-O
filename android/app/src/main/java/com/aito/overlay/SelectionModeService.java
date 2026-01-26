@@ -6,6 +6,8 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.PixelFormat;
+import android.graphics.RectF;
+import java.util.List;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -40,10 +42,14 @@ public class SelectionModeService extends Service {
     // Views
     private SelectionOverlayView selectionView;
     private ResultPopupView resultPopupView;
+    private LoadingIndicatorView loadingView;
+    private TextHighlightView highlightView;
     
     // Layout Params
     private WindowManager.LayoutParams selectionParams;
     private WindowManager.LayoutParams resultPopupParams;
+    private WindowManager.LayoutParams loadingParams;
+    private WindowManager.LayoutParams highlightParams;
     
     // State
     private boolean isOverlayVisible = false;
@@ -95,6 +101,8 @@ public class SelectionModeService extends Service {
         
         createSelectionView();
         createResultPopupView();
+        createLoadingView();
+        createHighlightView();
     }
     
     private void createSelectionView() {
@@ -179,6 +187,46 @@ public class SelectionModeService extends Service {
         resultPopupParams.gravity = Gravity.TOP | Gravity.START;
     }
     
+    private void createLoadingView() {
+        loadingView = new LoadingIndicatorView(this);
+        
+        int layoutFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? 
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : 
+            WindowManager.LayoutParams.TYPE_PHONE;
+        
+        loadingParams = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                layoutFlag,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+        
+        loadingParams.gravity = Gravity.TOP | Gravity.START;
+    }
+    
+    private void createHighlightView() {
+        highlightView = new TextHighlightView(this);
+        
+        int layoutFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? 
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : 
+            WindowManager.LayoutParams.TYPE_PHONE;
+        
+        highlightParams = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                layoutFlag,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+        
+        highlightParams.gravity = Gravity.TOP | Gravity.START;
+    }
+    
     // ==================== PUBLIC API ====================
     
     /**
@@ -191,6 +239,31 @@ public class SelectionModeService extends Service {
                 selectionView.setMode(selectionType);
             }
             Log.d(TAG, "Selection type set to: " + selectionType);
+        });
+    }
+    
+    /**
+     * Update detected text bounding boxes for pre-scan WORD mode
+     * @param boxes List of RectF representing text element bounding boxes
+     */
+    public void updateDetectedBoxes(final List<RectF> boxes) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (selectionView != null) {
+                selectionView.setDetectedBoxes(boxes);
+            }
+            Log.d(TAG, "Updated detected boxes: " + (boxes != null ? boxes.size() : 0) + " boxes");
+        });
+    }
+    
+    /**
+     * Clear all detected boxes
+     */
+    public void clearDetectedBoxes() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (selectionView != null) {
+                selectionView.clearDetectedBoxes();
+            }
+            Log.d(TAG, "Cleared detected boxes");
         });
     }
     
@@ -263,6 +336,84 @@ public class SelectionModeService extends Service {
      */
     public boolean isOverlayVisible() {
         return isOverlayVisible;
+    }
+    
+    /**
+     * Show loading indicator at position
+     */
+    public void showLoadingAt(final int x, final int y) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (loadingView == null) return;
+                
+                if (loadingView.getParent() == null) {
+                    windowManager.addView(loadingView, loadingParams);
+                }
+                loadingView.showAt(x, y);
+                
+                Log.d(TAG, "Loading indicator shown at " + x + ", " + y);
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing loading", e);
+            }
+        });
+    }
+    
+    /**
+     * Hide loading indicator
+     */
+    public void hideLoading() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (loadingView != null) {
+                    loadingView.hide();
+                    if (loadingView.getParent() != null) {
+                        windowManager.removeView(loadingView);
+                    }
+                }
+                Log.d(TAG, "Loading indicator hidden");
+            } catch (Exception e) {
+                Log.e(TAG, "Error hiding loading", e);
+            }
+        });
+    }
+    
+    /**
+     * Show text highlight at bounding box
+     */
+    public void showTextHighlight(final int x, final int y, final int width, final int height) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (highlightView == null) return;
+                
+                if (highlightView.getParent() == null) {
+                    windowManager.addView(highlightView, highlightParams);
+                }
+                highlightView.showHighlight(x, y, width, height);
+                
+                Log.d(TAG, "Text highlight shown at " + x + "," + y + " " + width + "x" + height);
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing highlight", e);
+            }
+        });
+    }
+    
+    /**
+     * Hide text highlight
+     */
+    public void hideTextHighlight() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (highlightView != null) {
+                    highlightView.hide();
+                    if (highlightView.getParent() != null) {
+                        windowManager.removeView(highlightView);
+                    }
+                }
+                Log.d(TAG, "Text highlight hidden");
+            } catch (Exception e) {
+                Log.e(TAG, "Error hiding highlight", e);
+            }
+        });
     }
     
     /**
@@ -367,6 +518,12 @@ public class SelectionModeService extends Service {
             }
             if (resultPopupView != null && resultPopupView.getParent() != null) {
                 windowManager.removeView(resultPopupView);
+            }
+            if (loadingView != null && loadingView.getParent() != null) {
+                windowManager.removeView(loadingView);
+            }
+            if (highlightView != null && highlightView.getParent() != null) {
+                windowManager.removeView(highlightView);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in onDestroy", e);

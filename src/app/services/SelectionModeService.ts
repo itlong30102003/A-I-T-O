@@ -123,6 +123,59 @@ class SelectionModeService {
         SelectionModeModule.hideResultPopup();
     }
 
+    /**
+     * Show loading indicator at tap position
+     */
+    showLoadingAt(x: number, y: number): void {
+        if (!this.isSupported) return;
+        console.log(`[SelectionModeService] Show loading at ${x}, ${y}`);
+        SelectionModeModule.showLoadingAt(x, y);
+    }
+
+    /**
+     * Hide loading indicator
+     */
+    hideLoading(): void {
+        if (!this.isSupported) return;
+        SelectionModeModule.hideLoading();
+    }
+
+    /**
+     * Show text highlight at bounding box
+     */
+    showTextHighlight(x: number, y: number, width: number, height: number): void {
+        if (!this.isSupported) return;
+        console.log(`[SelectionModeService] Show highlight at ${x},${y} ${width}x${height}`);
+        SelectionModeModule.showTextHighlight(x, y, width, height);
+    }
+
+    /**
+     * Hide text highlight
+     */
+    hideTextHighlight(): void {
+        if (!this.isSupported) return;
+        SelectionModeModule.hideTextHighlight();
+    }
+
+    /**
+     * Draw detected text bounding boxes for pre-scan WORD mode
+     * @param boxes Array of bounding boxes {x, y, width, height}
+     */
+    drawDetectedBoxes(boxes: Array<{ x: number; y: number; width: number; height: number }>): void {
+        if (!this.isSupported) return;
+        console.log(`[SelectionModeService] Drawing ${boxes.length} detected boxes`);
+        SelectionModeModule.updateDetectedBoxes(boxes);
+    }
+
+    /**
+     * Clear all detected boxes
+     */
+    clearDetectedBoxes(): void {
+        if (!this.isSupported) return;
+        console.log('[SelectionModeService] Clearing detected boxes');
+        SelectionModeModule.clearDetectedBoxes();
+    }
+
     // ==================== EVENT SUBSCRIPTIONS ====================
 
     /**

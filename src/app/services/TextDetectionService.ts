@@ -11,9 +11,15 @@ export interface BoundingBox {
   height: number;
 }
 
+export interface TextElement {
+  text: string;
+  boundingBox: BoundingBox;
+}
+
 export interface TextLine {
   text: string;
   boundingBox: BoundingBox;
+  elements: TextElement[];
 }
 
 export interface TextBlock {

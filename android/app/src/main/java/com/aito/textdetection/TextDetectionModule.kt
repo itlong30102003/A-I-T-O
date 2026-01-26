@@ -102,6 +102,20 @@ class TextDetectionModule(reactContext: ReactApplicationContext) : ReactContextB
                         if (lineBoundingBox != null) {
                             lineMap.putMap("boundingBox", createRectMap(lineBoundingBox))
                         }
+                        
+                        // Extract Elements (words) - enables word-level hit testing
+                        val elementsArray = Arguments.createArray()
+                        for (element in line.elements) {
+                            val elementMap = Arguments.createMap()
+                            elementMap.putString("text", element.text)
+                            val elementBoundingBox = element.boundingBox
+                            if (elementBoundingBox != null) {
+                                elementMap.putMap("boundingBox", createRectMap(elementBoundingBox))
+                            }
+                            elementsArray.pushMap(elementMap)
+                        }
+                        lineMap.putArray("elements", elementsArray)
+                        
                         linesArray.pushMap(lineMap)
                     }
                     blockMap.putArray("lines", linesArray)

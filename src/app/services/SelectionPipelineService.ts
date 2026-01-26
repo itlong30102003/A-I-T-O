@@ -12,8 +12,14 @@
 
 import { selectionModeService, WordTapEvent, ParagraphSelectEvent } from './SelectionModeService';
 import { screenCaptureService } from './ScreenCaptureService';
-import textDetectionService, { ScriptType } from './TextDetectionService';
+import textDetectionService, { ScriptType, TextBlock, TextElement, BoundingBox } from './TextDetectionService';
 import TranslationManager from './TranslationManager';
+
+// Result from Element-level hit testing
+interface ElementHitResult {
+    text: string;
+    boundingBox: BoundingBox;
+}
 
 export interface SelectionConfig {
     sourceLanguage: string;
@@ -43,6 +49,10 @@ class SelectionPipelineService {
     private unsubSelectionCancelled: (() => void) | null = null;
     private unsubPopupDismissed: (() => void) | null = null;
     private unsubOverlayToggled: (() => void) | null = null;
+
+    // Pre-scan cache for WORD mode
+    private cachedBlocks: TextBlock[] | null = null;
+    private isScanning: boolean = false;
 
     // Stats
     private stats = {
@@ -113,10 +123,99 @@ class SelectionPipelineService {
 
     /**
      * Toggle selection overlay visibility (called when user taps logo)
+     * For WORD mode: Runs pre-scan OCR and draws bounding boxes
      */
-    toggleOverlay(): void {
-        if (this.status !== 'idle') {
-            selectionModeService.toggleOverlay();
+    async toggleOverlay(): Promise<void> {
+        if (this.status === 'idle') return;
+
+        // Check if overlay is currently visible
+        const isVisible = await selectionModeService.isOverlayVisible();
+
+        if (isVisible) {
+            // Hide overlay and clear cache
+            selectionModeService.hideOverlay();
+            selectionModeService.clearDetectedBoxes();
+            this.cachedBlocks = null;
+            return;
+        }
+
+        // For WORD mode: Run pre-scan OCR before showing overlay
+        if (this.mode === 'WORD') {
+            await this.performPreScan();
+        } else {
+            // PARAGRAPH mode: Just show overlay directly
+            selectionModeService.showOverlay();
+        }
+    }
+
+    /**
+     * Pre-scan: Capture screen, run OCR, draw detected boxes
+     */
+    private async performPreScan(): Promise<void> {
+        if (this.isScanning) {
+            console.log('[SELECTION] Pre-scan already in progress');
+            return;
+        }
+
+        this.isScanning = true;
+        console.log('[SELECTION] 🔍 Starting pre-scan...');
+
+        try {
+            // Show overlay with "scanning" message (no boxes yet)
+            selectionModeService.showOverlay();
+
+            // 1. Get latest frame
+            const latestFrame = screenCaptureService.state.latestFrame;
+            if (!latestFrame) {
+                throw new Error('No screen capture available');
+            }
+
+            // 2. Run OCR to get all text blocks
+            console.log('[SELECTION] 📸 Running OCR on captured frame...');
+            const blocks = await textDetectionService.detectText(
+                latestFrame.path,
+                this.config.script || 'latin'
+            );
+
+            if (!blocks || blocks.length === 0) {
+                console.log('[SELECTION] 📭 No text detected');
+                selectionModeService.hideOverlay();
+                selectionModeService.showResultPopup('', 'Không tìm thấy văn bản trên màn hình', 0, 0);
+                this.cachedBlocks = null;
+                this.isScanning = false;
+                return;
+            }
+
+            // 3. Cache the blocks for tap handling
+            this.cachedBlocks = blocks;
+
+            // 4. Extract all Element bounding boxes for drawing
+            const boxes: Array<{ x: number; y: number; width: number; height: number }> = [];
+            for (const block of blocks) {
+                for (const line of block.lines) {
+                    for (const element of line.elements) {
+                        boxes.push({
+                            x: element.boundingBox.x,
+                            y: element.boundingBox.y,
+                            width: element.boundingBox.width,
+                            height: element.boundingBox.height,
+                        });
+                    }
+                }
+            }
+
+            console.log(`[SELECTION] ✅ Pre-scan complete: ${boxes.length} elements detected`);
+
+            // 5. Draw boxes on overlay
+            selectionModeService.drawDetectedBoxes(boxes);
+
+        } catch (error) {
+            console.error('[SELECTION] ❌ Pre-scan error:', error);
+            selectionModeService.hideOverlay();
+            selectionModeService.showResultPopup('', `Lỗi quét: ${(error as Error).message}`, 0, 0);
+            this.cachedBlocks = null;
+        } finally {
+            this.isScanning = false;
         }
     }
 
@@ -146,6 +245,7 @@ class SelectionPipelineService {
 
     /**
      * Handle word tap event
+     * Uses cached OCR results from pre-scan (no new OCR call needed)
      */
     private handleWordTapped = async (event: WordTapEvent): Promise<void> => {
         if (this.status === 'processing') {
@@ -156,75 +256,77 @@ class SelectionPipelineService {
         this.status = 'processing';
         this.stats.selectionsProcessed++;
 
-        // Hide overlay immediately so user cannot tap again while processing
+        // Hide overlay and clear boxes immediately
         selectionModeService.hideOverlay();
+        selectionModeService.clearDetectedBoxes();
         console.log('[SELECTION] Overlay hidden after tap');
 
         const { x, y } = event;
 
         console.log(`[SELECTION] 👆 Word tapped at (${x}, ${y})`);
 
+        // Show loading indicator immediately at tap position
+        selectionModeService.showLoadingAt(x, y);
+
         try {
-            // 1. Capture current screen
-            console.log('[SELECTION] 📸 Capturing screen...');
-            const latestFrame = screenCaptureService.state.latestFrame;
-            if (!latestFrame) {
-                throw new Error('No screen capture available');
-            }
-
-            // 2. Calculate crop region around tap point
-            const cropWidth = this.config.wordCropWidth || 200;
-            const cropHeight = this.config.wordCropHeight || 100;
-            const cropX = Math.max(0, x - cropWidth / 2);
-            const cropY = Math.max(0, y - cropHeight / 2);
-
-            console.log(`[SELECTION] ✂️ Cropping region: (${cropX}, ${cropY}) ${cropWidth}x${cropHeight}`);
-
-            // 3. Run OCR on the entire frame (we'll filter by position)
-            console.log('[SELECTION] 🔍 Running OCR...');
-            const blocks = await textDetectionService.detectText(latestFrame.path, this.config.script || 'latin');
-
-            if (!blocks || blocks.length === 0) {
-                console.log('[SELECTION] 📭 No text detected');
-                selectionModeService.showResultPopup('', 'Không tìm thấy văn bản tại vị trí này', x, y);
+            // Use cached blocks from pre-scan (no new OCR needed!)
+            if (!this.cachedBlocks || this.cachedBlocks.length === 0) {
+                console.log('[SELECTION] ⚠️ No cached blocks, tap ignored');
+                selectionModeService.hideLoading();
+                selectionModeService.showResultPopup('', 'Vui lòng quét lại màn hình', x, y);
+                this.status = 'active';
                 return;
             }
 
-            // 4. Find text block closest to tap position
-            const tappedText = this.findTextAtPosition(blocks, x, y);
+            console.log(`[SELECTION] 🔍 Using cached OCR results (${this.cachedBlocks.length} blocks)`);
 
-            if (!tappedText) {
+            // Find Element at tap position using Block → Line → Element hierarchy
+            const hitResult = this.findElementAtPosition(this.cachedBlocks, x, y);
+
+            if (!hitResult) {
                 console.log('[SELECTION] 📭 No text at tap position');
+                selectionModeService.hideLoading();
                 selectionModeService.showResultPopup('', 'Không tìm thấy văn bản tại vị trí này', x, y);
+                this.status = 'active';
                 return;
             }
 
-            console.log(`[SELECTION] 📝 Found text: "${tappedText.substring(0, 50)}..."`);
+            console.log(`[SELECTION] 📝 Found text: "${hitResult.text}"`);
 
-            // 5. Translate
+            // Hide loading and show highlight on detected text bbox
+            selectionModeService.hideLoading();
+            const bbox = hitResult.boundingBox;
+            selectionModeService.showTextHighlight(bbox.x, bbox.y, bbox.width, bbox.height);
+
+            // Translate
             console.log('[SELECTION] 🌐 Translating...');
             const response = await TranslationManager.translate({
-                items: [{ id: '0', text: tappedText }],
+                items: [{ id: '0', text: hitResult.text }],
                 sourceLanguage: this.config.sourceLanguage === 'auto' ? undefined : this.config.sourceLanguage,
                 targetLanguage: this.config.targetLanguage,
                 strategy: 'MLKIT',
-                saveHistory: false, // Disabled temporarily
+                saveHistory: false,
             });
 
             const translatedText = response.results?.[0]?.t || 'Không thể dịch';
             this.stats.translationsCompleted++;
 
-            console.log(`[SELECTION] ✅ Translation: "${translatedText.substring(0, 50)}..."`);
+            console.log(`[SELECTION] ✅ Translation: "${translatedText}"`);
 
-            // 6. Show popup
-            selectionModeService.showResultPopup(tappedText, translatedText, x, y);
+            // Show popup (highlight remains visible until popup is dismissed)
+            selectionModeService.showResultPopup(hitResult.text, translatedText, x, y);
+
+            // Clear cache after successful translation
+            this.cachedBlocks = null;
 
         } catch (error) {
             this.stats.errors++;
             console.error('[SELECTION] ❌ Error:', error);
+            selectionModeService.hideLoading();
+            selectionModeService.hideTextHighlight();
             selectionModeService.showResultPopup('', `Lỗi: ${(error as Error).message}`, x, y);
         } finally {
-            // Stay in processing state until popup is dismissed
+            this.status = 'active';
         }
     };
 
@@ -316,11 +418,74 @@ class SelectionPipelineService {
      */
     private handlePopupDismissed = (): void => {
         console.log('[SELECTION] Popup dismissed, ready for next selection');
+        // Hide text highlight when popup is dismissed
+        selectionModeService.hideTextHighlight();
         this.status = 'active';
     };
 
     /**
-     * Find text block at given position
+     * Find Element at given position using Block → Line → Element hierarchy
+     * Uses padding for better UX and nearest neighbor fallback
+     */
+    private findElementAtPosition(blocks: TextBlock[], x: number, y: number): ElementHitResult | null {
+        const PADDING = 10; // Padding to make small text easier to tap
+        const MAX_DISTANCE = 50; // Maximum distance for nearest neighbor fallback
+
+        // Helper to check if point is in rect with optional padding
+        const isPointInRect = (px: number, py: number, bbox: BoundingBox, padding: number = 0): boolean => {
+            return px >= bbox.x - padding && px <= bbox.x + bbox.width + padding &&
+                py >= bbox.y - padding && py <= bbox.y + bbox.height + padding;
+        };
+
+        // Helper to calculate distance from point to rect center
+        const distanceToRect = (px: number, py: number, bbox: BoundingBox): number => {
+            const centerX = bbox.x + bbox.width / 2;
+            const centerY = bbox.y + bbox.height / 2;
+            return Math.sqrt(Math.pow(px - centerX, 2) + Math.pow(py - centerY, 2));
+        };
+
+        let nearestElement: ElementHitResult | null = null;
+        let nearestDistance = Infinity;
+
+        // 1. Traverse Block → Line → Element hierarchy
+        for (const block of blocks) {
+            // Optimization: Skip if tap is not even close to block
+            if (!isPointInRect(x, y, block.boundingBox, PADDING * 2)) continue;
+
+            for (const line of block.lines) {
+                // Optimization: Skip if tap is not in line
+                if (!isPointInRect(x, y, line.boundingBox, PADDING)) continue;
+
+                // Check each Element (word) in the line
+                for (const element of line.elements) {
+                    // Direct hit with padding
+                    if (isPointInRect(x, y, element.boundingBox, PADDING)) {
+                        return {
+                            text: element.text,
+                            boundingBox: element.boundingBox
+                        };
+                    }
+
+                    // Track nearest for fallback
+                    const distance = distanceToRect(x, y, element.boundingBox);
+                    if (distance < nearestDistance && distance < MAX_DISTANCE) {
+                        nearestDistance = distance;
+                        nearestElement = {
+                            text: element.text,
+                            boundingBox: element.boundingBox
+                        };
+                    }
+                }
+            }
+        }
+
+        // Fallback to nearest element if no direct hit
+        return nearestElement;
+    }
+
+    /**
+     * @deprecated Use findElementAtPosition instead
+     * Find text block at given position (legacy method for backward compatibility)
      */
     private findTextAtPosition(blocks: Array<{ text: string; boundingBox: any }>, x: number, y: number): string | null {
         // Find block that contains the tap point
