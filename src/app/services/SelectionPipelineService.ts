@@ -49,6 +49,7 @@ class SelectionPipelineService {
     private unsubSelectionCancelled: (() => void) | null = null;
     private unsubPopupDismissed: (() => void) | null = null;
     private unsubOverlayToggled: (() => void) | null = null;
+    private unsubSelectionStarted: (() => void) | null = null;
 
     // Pre-scan cache for WORD mode
     private cachedBlocks: TextBlock[] | null = null;
@@ -132,8 +133,10 @@ class SelectionPipelineService {
         const isVisible = await selectionModeService.isOverlayVisible();
 
         if (isVisible) {
-            // Hide overlay and clear cache
+            // Hide overlay and clear everything
             selectionModeService.hideOverlay();
+            selectionModeService.hideResultPopup();
+            selectionModeService.hideTextHighlight();
             selectionModeService.clearDetectedBoxes();
             this.cachedBlocks = null;
             return;
@@ -227,6 +230,7 @@ class SelectionPipelineService {
         this.unsubOverlayToggled = selectionModeService.onOverlayToggled((event) => {
             console.log(`[SELECTION] Overlay toggled: ${event.isVisible ? 'ON' : 'OFF'}`);
         });
+        this.unsubSelectionStarted = selectionModeService.onSelectionStarted(this.handleSelectionStarted);
     }
 
     private unsubscribeFromEvents(): void {
@@ -235,12 +239,14 @@ class SelectionPipelineService {
         if (this.unsubSelectionCancelled) this.unsubSelectionCancelled();
         if (this.unsubPopupDismissed) this.unsubPopupDismissed();
         if (this.unsubOverlayToggled) this.unsubOverlayToggled();
+        if (this.unsubSelectionStarted) this.unsubSelectionStarted();
 
         this.unsubWordTapped = null;
         this.unsubParagraphSelected = null;
         this.unsubSelectionCancelled = null;
         this.unsubPopupDismissed = null;
         this.unsubOverlayToggled = null;
+        this.unsubSelectionStarted = null;
     }
 
     /**
@@ -342,9 +348,8 @@ class SelectionPipelineService {
         this.status = 'processing';
         this.stats.selectionsProcessed++;
 
-        // Hide overlay immediately so user cannot draw again while processing
-        selectionModeService.hideOverlay();
-        console.log('[SELECTION] Overlay hidden after selection');
+        // CHANGED: Do NOT hide overlay - keep it visible for persistent highlight
+        // selectionModeService.hideOverlay(); // REMOVED
 
         const { x, y, width, height } = event;
 
@@ -367,8 +372,20 @@ class SelectionPipelineService {
                 return;
             }
 
-            // 3. Filter blocks that intersect with selection
-            const selectedBlocks = this.findBlocksInRegion(blocks, x, y, width, height);
+            // 3. Smart Snap: Calculate snapped rectangle that perfectly bounds all intersecting lines
+            const snappedRect = this.calculateSmartSnap({ x, y, width, height }, blocks, 10);
+            console.log(`[SELECTION] 📐 Smart snap calculated: (${snappedRect.x}, ${snappedRect.y}) ${snappedRect.width}x${snappedRect.height}`);
+
+            // 4. Update overlay with snapped highlight
+            selectionModeService.updateSelectionHighlight(
+                snappedRect.x,
+                snappedRect.y,
+                snappedRect.width,
+                snappedRect.height
+            );
+
+            // 5. Filter blocks that intersect with snapped selection
+            const selectedBlocks = this.findBlocksInRegion(blocks, snappedRect.x, snappedRect.y, snappedRect.width, snappedRect.height);
 
             if (selectedBlocks.length === 0) {
                 console.log('[SELECTION] 📭 No text in selected region');
@@ -376,11 +393,11 @@ class SelectionPipelineService {
                 return;
             }
 
-            // 4. Combine all text
+            // 6. Combine all text
             const combinedText = selectedBlocks.map(b => b.text).join(' ');
             console.log(`[SELECTION] 📝 Selected text (${selectedBlocks.length} blocks): "${combinedText.substring(0, 100)}..."`);
 
-            // 5. Translate
+            // 7. Translate
             console.log('[SELECTION] 🌐 Translating...');
             const response = await TranslationManager.translate({
                 items: [{ id: '0', text: combinedText }],
@@ -402,6 +419,8 @@ class SelectionPipelineService {
             this.stats.errors++;
             console.error('[SELECTION] ❌ Error:', error);
             selectionModeService.showResultPopup('', `Lỗi: ${(error as Error).message}`, x + width / 2, y);
+        } finally {
+            this.status = 'active';
         }
     };
 
@@ -421,6 +440,15 @@ class SelectionPipelineService {
         // Hide text highlight when popup is dismissed
         selectionModeService.hideTextHighlight();
         this.status = 'active';
+    };
+
+    /**
+     * Handle selection started (for PARAGRAPH mode redraw mechanism)
+     */
+    private handleSelectionStarted = (): void => {
+        console.log('[SELECTION] Selection started, hiding popup for redraw');
+        // Hide popup immediately when user starts drawing new selection
+        selectionModeService.hideResultPopup();
     };
 
     /**
@@ -541,6 +569,70 @@ class SelectionPipelineService {
                 bbox.y > selectionBottom ||
                 blockBottom < y);
         });
+    }
+
+    /**
+     * Calculate smart snap bounding box from user's rough selection
+     * Finds all lines that intersect with user rect and creates tight bbox around them
+     */
+    private calculateSmartSnap(
+        userRect: { x: number; y: number; width: number; height: number },
+        ocrBlocks: TextBlock[],
+        padding: number = 10
+    ): { x: number; y: number; width: number; height: number } {
+        let minX = Number.MAX_VALUE;
+        let minY = Number.MAX_VALUE;
+        let maxX = Number.MIN_VALUE;
+        let maxY = Number.MIN_VALUE;
+        let hasIntersection = false;
+
+        // Helper to check if two rectangles intersect
+        const isIntersecting = (r1: BoundingBox, r2: BoundingBox): boolean => {
+            const r1Right = r1.x + r1.width;
+            const r1Bottom = r1.y + r1.height;
+            const r2Right = r2.x + r2.width;
+            const r2Bottom = r2.y + r2.height;
+
+            return !(r2.x > r1Right || r2Right < r1.x || r2.y > r1Bottom || r2Bottom < r1.y);
+        };
+
+        const userBBox: BoundingBox = {
+            x: userRect.x,
+            y: userRect.y,
+            width: userRect.width,
+            height: userRect.height
+        };
+
+        // Iterate through OCR blocks and lines to find intersections
+        for (const block of ocrBlocks) {
+            for (const line of block.lines) {
+                if (isIntersecting(userBBox, line.boundingBox)) {
+                    hasIntersection = true;
+                    const lineBBox = line.boundingBox;
+                    minX = Math.min(minX, lineBBox.x);
+                    minY = Math.min(minY, lineBBox.y);
+                    maxX = Math.max(maxX, lineBBox.x + lineBBox.width);
+                    maxY = Math.max(maxY, lineBBox.y + lineBBox.height);
+                }
+            }
+        }
+
+        // If no text found, return original user rect
+        if (!hasIntersection) {
+            console.log('[SELECTION] Smart snap: No text found, using original rect');
+            return userRect;
+        }
+
+        // Return snapped rect with padding
+        const snappedRect = {
+            x: Math.max(0, minX - padding),
+            y: Math.max(0, minY - padding),
+            width: (maxX - minX) + (padding * 2),
+            height: (maxY - minY) + (padding * 2)
+        };
+
+        console.log(`[SELECTION] Smart snap: user=${JSON.stringify(userRect)} → snapped=${JSON.stringify(snappedRect)}`);
+        return snappedRect;
     }
 
     // Getters

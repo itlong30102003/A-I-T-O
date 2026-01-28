@@ -68,6 +68,7 @@ public class SelectionModeService extends Service {
         void onSelectionCancelled();
         void onResultPopupDismissed();
         void onOverlayToggled(boolean isVisible);
+        void onSelectionStarted(); // New: fired when user starts drawing new selection
     }
     
     public void setOnSelectionEventListener(OnSelectionEventListener l) {
@@ -129,6 +130,14 @@ public class SelectionModeService extends Service {
                 Log.d(TAG, "Selection cancelled");
                 if (listener != null) {
                     listener.onSelectionCancelled();
+                }
+            }
+            
+            @Override
+            public void onSelectionStarted() {
+                Log.d(TAG, "Selection started");
+                if (listener != null) {
+                    listener.onSelectionStarted();
                 }
             }
         });
@@ -264,6 +273,22 @@ public class SelectionModeService extends Service {
                 selectionView.clearDetectedBoxes();
             }
             Log.d(TAG, "Cleared detected boxes");
+        });
+    }
+    
+    /**
+     * Update the persistent selection highlight (for PARAGRAPH mode smart snap)
+     * @param x Left coordinate (bitmap coordinates)
+     * @param y Top coordinate (bitmap coordinates)
+     * @param width Width of highlight
+     * @param height Height of highlight
+     */
+    public void updateSelectionHighlight(final int x, final int y, final int width, final int height) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (selectionView != null) {
+                selectionView.updateHighlightBox(x, y, width, height);
+            }
+            Log.d(TAG, "Updated selection highlight: (" + x + "," + y + ") " + width + "x" + height);
         });
     }
     
@@ -422,19 +447,8 @@ public class SelectionModeService extends Service {
     public void showResultPopup(final String originalText, final String translatedText, final int hintX, final int hintY) {
         new Handler(Looper.getMainLooper()).post(() -> {
             try {
-                // Hide selection overlay completely when showing popup
-                if (selectionView != null) {
-                    selectionView.setActive(false);
-                    if (selectionView.getParent() != null) {
-                        windowManager.removeView(selectionView);
-                    }
-                }
-                isOverlayVisible = false;
-                
-                // Notify JS side that overlay is hidden
-                if (listener != null) {
-                    listener.onOverlayToggled(false);
-                }
+                // Keep selection overlay visible when showing popup
+                // (Previously it was hidden here, which caused the highlight box to disappear)
                 
                 // Show result popup
                 if (resultPopupView.getParent() == null) {
@@ -442,7 +456,7 @@ public class SelectionModeService extends Service {
                 }
                 resultPopupView.show(originalText, translatedText, hintX, hintY);
                 
-                Log.d(TAG, "Result popup shown, overlay hidden");
+                Log.d(TAG, "Result popup shown, overlay remains visible");
             } catch (Exception e) {
                 Log.e(TAG, "Error showing result popup", e);
             }

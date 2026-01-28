@@ -33,6 +33,11 @@ public class SelectionOverlayView extends View {
     private boolean isDrawingSelection = false;
     private PointF startPoint = new PointF();
     
+    // For PARAGRAPH mode: persistent highlight (after smart snap)
+    private RectF highlightRect = new RectF();
+    private Paint highlightPaint;
+    private Paint highlightBorderPaint;
+    
     // Visual styling
     private Paint selectionPaint;
     private Paint selectionBorderPaint;
@@ -57,6 +62,7 @@ public class SelectionOverlayView extends View {
         void onWordTapped(int x, int y);
         void onParagraphSelected(int x, int y, int width, int height);
         void onSelectionCancelled();
+        void onSelectionStarted(); // New: fired when user starts drawing new selection
     }
     
     public void setOnSelectionListener(OnSelectionListener listener) {
@@ -88,16 +94,27 @@ public class SelectionOverlayView extends View {
     }
     
     private void initPaints() {
-        // Selection area fill (semi-transparent blue)
+        // Selection area fill (semi-transparent blue) - for user drawing
         selectionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         selectionPaint.setColor(Color.argb(60, 33, 150, 243)); // Light blue
         selectionPaint.setStyle(Paint.Style.FILL);
         
-        // Selection border
+        // Selection border - for user drawing
         selectionBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         selectionBorderPaint.setColor(Color.parseColor("#2196F3")); // Blue
         selectionBorderPaint.setStyle(Paint.Style.STROKE);
         selectionBorderPaint.setStrokeWidth(3 * density);
+        
+        // Highlight fill (semi-transparent green) - for smart-snapped result
+        highlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        highlightPaint.setColor(Color.argb(60, 76, 175, 80)); // Light green
+        highlightPaint.setStyle(Paint.Style.FILL);
+        
+        // Highlight border - for smart-snapped result
+        highlightBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        highlightBorderPaint.setColor(Color.parseColor("#4CAF50")); // Green
+        highlightBorderPaint.setStyle(Paint.Style.STROKE);
+        highlightBorderPaint.setStrokeWidth(4 * density);
         
         // Instruction text
         instructionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -159,11 +176,39 @@ public class SelectionOverlayView extends View {
         return !detectedBoxes.isEmpty();
     }
     
+    /**
+     * Update the persistent highlight box (for PARAGRAPH mode smart snap)
+     * Called from JS after smart snap calculation
+     * @param x Left coordinate (bitmap coordinates)
+     * @param y Top coordinate (bitmap coordinates)
+     * @param width Width of highlight
+     * @param height Height of highlight
+     */
+    public void updateHighlightBox(float x, float y, float width, float height) {
+        // Clear drawing rect when highlight arrives
+        selectionRect.setEmpty();
+        
+        // Convert bitmap Y to screen Y by subtracting statusBarHeight
+        float screenY = y - statusBarHeight;
+        highlightRect.set(x, screenY, x + width, screenY + height);
+        Log.d(TAG, "Highlight updated: bitmap(" + x + "," + y + ") -> screen(" + x + "," + screenY + ") " + width + "x" + height);
+        invalidate();
+    }
+    
+    /**
+     * Clear the persistent highlight box
+     */
+    public void clearHighlightBox() {
+        highlightRect.setEmpty();
+        invalidate();
+    }
+    
     public void setActive(boolean active) {
         this.isActive = active;
         if (!active) {
             isDrawingSelection = false;
             selectionRect.setEmpty();
+            highlightRect.setEmpty();
         }
         invalidate();
     }
@@ -180,6 +225,20 @@ public class SelectionOverlayView extends View {
         
         float x = event.getX();
         float y = event.getY();
+        
+        // Logo exclusion zone: bottom-right corner where the logo is positioned
+        // Logo size is 28dp, margin is 16dp, and y offset is 100px from bottom
+        // We create a generous exclusion zone to ensure logo is always tappable
+        float logoExclusionWidth = 96 * density;  // ~96dp from right edge
+        float logoExclusionHeight = 180 * density; // ~180dp from bottom edge
+        
+        boolean isInLogoZone = x > (screenWidth - logoExclusionWidth) && 
+                               y > (screenHeight - logoExclusionHeight);
+        
+        if (isInLogoZone) {
+            Log.d(TAG, "Touch in logo exclusion zone, passing through");
+            return false; // Pass through to allow logo click
+        }
         
         if ("WORD".equals(mode)) {
             return handleWordModeTouchEvent(event, x, y);
@@ -207,6 +266,13 @@ public class SelectionOverlayView extends View {
     private boolean handleParagraphModeTouchEvent(MotionEvent event, float x, float y) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                // Redraw mechanism: Clear old highlight and notify JS to hide popup
+                clearHighlightBox();
+                if (listener != null) {
+                    listener.onSelectionStarted();
+                }
+                
+                // Start new selection
                 startPoint.set(x, y);
                 selectionRect.set(x, y, x, y);
                 isDrawingSelection = true;
@@ -227,15 +293,20 @@ public class SelectionOverlayView extends View {
                     
                     // Only trigger if selection has meaningful size
                     if (selectionRect.width() > 20 && selectionRect.height() > 20) {
-                        Log.d(TAG, "Paragraph selected: " + selectionRect);
+                        // Convert screen Y to bitmap Y by adding statusBarHeight
+                        // This is needed because OCR blocks use bitmap coordinates which include status bar area
+                        int bitmapTop = (int) selectionRect.top + statusBarHeight;
+                        Log.d(TAG, "Paragraph selected: screen=" + selectionRect + " -> bitmapTop=" + bitmapTop);
                         if (listener != null) {
                             listener.onParagraphSelected(
                                 (int) selectionRect.left,
-                                (int) selectionRect.top,
+                                bitmapTop,
                                 (int) selectionRect.width(),
                                 (int) selectionRect.height()
                             );
                         }
+                        // Clear selectionRect after triggering event to follow user request
+                        selectionRect.setEmpty();
                     } else {
                         // Too small, treat as cancelled
                         selectionRect.setEmpty();
@@ -276,13 +347,22 @@ public class SelectionOverlayView extends View {
         // Draw instruction banner at top
         drawInstructionBanner(canvas);
         
-        // Draw selection rectangle (for PARAGRAPH mode)
+        // Draw user selection rectangle (blue) while drawing (for PARAGRAPH mode)
         if ("PARAGRAPH".equals(mode) && !selectionRect.isEmpty()) {
             canvas.drawRect(selectionRect, selectionPaint);
             canvas.drawRect(selectionRect, selectionBorderPaint);
             
             // Draw corner handles
-            drawCornerHandles(canvas);
+            drawCornerHandles(canvas, selectionRect, selectionBorderPaint);
+        }
+        
+        // Draw persistent highlight box (green) after smart snap (for PARAGRAPH mode)
+        if ("PARAGRAPH".equals(mode) && !highlightRect.isEmpty()) {
+            canvas.drawRect(highlightRect, highlightPaint);
+            canvas.drawRect(highlightRect, highlightBorderPaint);
+            
+            // Draw corner handles for highlight
+            drawCornerHandles(canvas, highlightRect, highlightBorderPaint);
         }
         
         // Draw detected boxes for WORD mode (pre-scan)
@@ -342,17 +422,17 @@ public class SelectionOverlayView extends View {
         canvas.drawText(instruction, bannerRect.centerX(), textY, instructionPaint);
     }
     
-    private void drawCornerHandles(Canvas canvas) {
+    private void drawCornerHandles(Canvas canvas, RectF rect, Paint borderPaint) {
         float handleRadius = 8 * density;
         Paint handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        handlePaint.setColor(Color.parseColor("#2196F3"));
+        handlePaint.setColor(borderPaint.getColor());
         handlePaint.setStyle(Paint.Style.FILL);
         
         // Four corners
-        canvas.drawCircle(selectionRect.left, selectionRect.top, handleRadius, handlePaint);
-        canvas.drawCircle(selectionRect.right, selectionRect.top, handleRadius, handlePaint);
-        canvas.drawCircle(selectionRect.left, selectionRect.bottom, handleRadius, handlePaint);
-        canvas.drawCircle(selectionRect.right, selectionRect.bottom, handleRadius, handlePaint);
+        canvas.drawCircle(rect.left, rect.top, handleRadius, handlePaint);
+        canvas.drawCircle(rect.right, rect.top, handleRadius, handlePaint);
+        canvas.drawCircle(rect.left, rect.bottom, handleRadius, handlePaint);
+        canvas.drawCircle(rect.right, rect.bottom, handleRadius, handlePaint);
     }
     
     private void drawCenterIndicator(Canvas canvas) {

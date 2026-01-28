@@ -156,6 +156,20 @@ public class SelectionModeModule extends ReactContextBaseJavaModule {
     }
     
     /**
+     * Update selection highlight (for PARAGRAPH mode smart snap)
+     * @param x Left coordinate (bitmap coordinates)
+     * @param y Top coordinate (bitmap coordinates)
+     * @param width Width of highlight
+     * @param height Height of highlight
+     */
+    @ReactMethod
+    public void updateSelectionHighlight(int x, int y, int width, int height) {
+        if (SelectionModeService.instance != null) {
+            SelectionModeService.instance.updateSelectionHighlight(x, y, width, height);
+        }
+    }
+    
+    /**
      * Show result popup
      */
     @ReactMethod
@@ -252,6 +266,11 @@ public class SelectionModeModule extends ReactContextBaseJavaModule {
                 WritableMap params = Arguments.createMap();
                 params.putBoolean("isVisible", isVisible);
                 emitEvent("onSelectionOverlayToggled", params);
+            }
+            
+            @Override
+            public void onSelectionStarted() {
+                emitEvent("onSelectionStarted", null);
             }
         });
     }

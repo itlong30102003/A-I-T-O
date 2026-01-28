@@ -176,6 +176,15 @@ class SelectionModeService {
         SelectionModeModule.clearDetectedBoxes();
     }
 
+    /**
+     * Update selection highlight (for PARAGRAPH mode smart snap)
+     */
+    updateSelectionHighlight(x: number, y: number, width: number, height: number): void {
+        if (!this.isSupported) return;
+        console.log(`[SelectionModeService] Updating selection highlight: (${x},${y}) ${width}x${height}`);
+        SelectionModeModule.updateSelectionHighlight(x, y, width, height);
+    }
+
     // ==================== EVENT SUBSCRIPTIONS ====================
 
     /**
@@ -223,6 +232,15 @@ class SelectionModeService {
             this._isOverlayVisible = event.isVisible;
             callback(event);
         });
+        return () => subscription.remove();
+    }
+
+    /**
+     * Subscribe to selection started events (fired when user starts drawing new selection)
+     */
+    onSelectionStarted(callback: () => void): () => void {
+        if (!this.isSupported || !this.emitter) return () => { };
+        const subscription = this.emitter.addListener('onSelectionStarted', callback);
         return () => subscription.remove();
     }
 
