@@ -133,12 +133,14 @@ class SelectionPipelineService {
         const isVisible = await selectionModeService.isOverlayVisible();
 
         if (isVisible) {
+            console.log('[SELECTION] 🔄 Resetting selection mode via Logo click');
             // Hide overlay and clear everything
             selectionModeService.hideOverlay();
             selectionModeService.hideResultPopup();
             selectionModeService.hideTextHighlight();
             selectionModeService.clearDetectedBoxes();
             this.cachedBlocks = null;
+            this.status = 'active';
             return;
         }
 
@@ -348,8 +350,8 @@ class SelectionPipelineService {
         this.status = 'processing';
         this.stats.selectionsProcessed++;
 
-        // CHANGED: Do NOT hide overlay - keep it visible for persistent highlight
-        // selectionModeService.hideOverlay(); // REMOVED
+        // Native side automatically hides overlay and shows Loading Indicator
+        // We just need to process and show result
 
         const { x, y, width, height } = event;
 
@@ -368,6 +370,7 @@ class SelectionPipelineService {
 
             if (!blocks || blocks.length === 0) {
                 console.log('[SELECTION] 📭 No text detected');
+                selectionModeService.hideLoading();
                 selectionModeService.showResultPopup('', 'Không tìm thấy văn bản trong vùng chọn', x + width / 2, y);
                 return;
             }
@@ -376,8 +379,9 @@ class SelectionPipelineService {
             const snappedRect = this.calculateSmartSnap({ x, y, width, height }, blocks, 10);
             console.log(`[SELECTION] 📐 Smart snap calculated: (${snappedRect.x}, ${snappedRect.y}) ${snappedRect.width}x${snappedRect.height}`);
 
-            // 4. Update overlay with snapped highlight
-            selectionModeService.updateSelectionHighlight(
+            // 4. Update overlay with snapped highlight (Use TextHighlightView now)
+            // Use showTextHighlight instead of updateSelectionHighlight
+            selectionModeService.showTextHighlight(
                 snappedRect.x,
                 snappedRect.y,
                 snappedRect.width,
@@ -389,6 +393,7 @@ class SelectionPipelineService {
 
             if (selectedBlocks.length === 0) {
                 console.log('[SELECTION] 📭 No text in selected region');
+                selectionModeService.hideLoading();
                 selectionModeService.showResultPopup('', 'Không tìm thấy văn bản trong vùng chọn', x + width / 2, y);
                 return;
             }
@@ -412,12 +417,14 @@ class SelectionPipelineService {
 
             console.log(`[SELECTION] ✅ Translation: "${translatedText.substring(0, 100)}..."`);
 
-            // 6. Show popup at center of selection
+            // 8. Hide Loading & Show popup at center of selection
+            selectionModeService.hideLoading();
             selectionModeService.showResultPopup(combinedText, translatedText, x + width / 2, y);
 
         } catch (error) {
             this.stats.errors++;
             console.error('[SELECTION] ❌ Error:', error);
+            selectionModeService.hideLoading();
             selectionModeService.showResultPopup('', `Lỗi: ${(error as Error).message}`, x + width / 2, y);
         } finally {
             this.status = 'active';

@@ -227,17 +227,20 @@ public class SelectionOverlayView extends View {
         float y = event.getY();
         
         // Logo exclusion zone: bottom-right corner where the logo is positioned
-        // Logo size is 28dp, margin is 16dp, and y offset is 100px from bottom
-        // We create a generous exclusion zone to ensure logo is always tappable
-        float logoExclusionWidth = 96 * density;  // ~96dp from right edge
-        float logoExclusionHeight = 180 * density; // ~180dp from bottom edge
+        // We use a generous zone to ensure the logo is always clickable
+        float logoExclusionWidth = 120 * density;  // 120dp from right edge
+        float logoExclusionHeight = 220 * density; // 220dp from bottom edge
         
         boolean isInLogoZone = x > (screenWidth - logoExclusionWidth) && 
                                y > (screenHeight - logoExclusionHeight);
         
+        Log.d(TAG, "Touch at (" + x + "," + y + "), Screen: " + screenWidth + "x" + screenHeight + 
+                   ", Zone: >" + (screenWidth - logoExclusionWidth) + ", >" + (screenHeight - logoExclusionHeight) +
+                   ", isInLogoZone: " + isInLogoZone);
+        
         if (isInLogoZone) {
-            Log.d(TAG, "Touch in logo exclusion zone, passing through");
-            return false; // Pass through to allow logo click
+            Log.d(TAG, "Touch in logo exclusion zone, passing through to allowed logo toggle");
+            return false;
         }
         
         if ("WORD".equals(mode)) {

@@ -106,6 +106,15 @@ public class SelectionModeService extends Service {
         createHighlightView();
     }
     
+    private int getStatusBarHeight() {
+        int result = 0;
+        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
     private void createSelectionView() {
         selectionView = new SelectionOverlayView(this);
         selectionView.setOnSelectionListener(new SelectionOverlayView.OnSelectionListener() {
@@ -120,6 +129,16 @@ public class SelectionModeService extends Service {
             @Override
             public void onParagraphSelected(int x, int y, int width, int height) {
                 Log.d(TAG, "Paragraph selected: " + x + "," + y + " " + width + "x" + height);
+                
+                // Session-based flow:
+                // 1. Hide overlay immediately
+                hideOverlay();
+                
+                // 2. Show loading at center
+                int centerX = x + width / 2;
+                int centerY = (y - getStatusBarHeight()) + height / 2;
+                showLoadingAt(centerX, centerY);
+                
                 if (listener != null) {
                     listener.onParagraphSelected(x, y, width, height);
                 }
@@ -297,9 +316,14 @@ public class SelectionModeService extends Service {
      */
     public void toggleOverlay() {
         new Handler(Looper.getMainLooper()).post(() -> {
-            if (isOverlayVisible) {
+            if (isOverlayVisible()) {
+                Log.d(TAG, "toggleOverlay: Selection UI is active, performing full reset");
                 hideOverlay();
+                hideResultPopup();
+                hideTextHighlight();
+                hideLoading();
             } else {
+                Log.d(TAG, "toggleOverlay: Selection UI is inactive, showing overlay");
                 showOverlay();
             }
         });
@@ -360,7 +384,15 @@ public class SelectionModeService extends Service {
      * Check if overlay is currently visible
      */
     public boolean isOverlayVisible() {
-        return isOverlayVisible;
+        boolean popupActive = resultPopupView != null && resultPopupView.isPopupVisible();
+        boolean highlightActive = highlightView != null && highlightView.isHighlightVisible();
+        boolean isActive = isOverlayVisible || popupActive || highlightActive;
+        
+        Log.d(TAG, "isOverlayVisible check: overlay=" + isOverlayVisible + 
+                   ", popup=" + popupActive + 
+                   ", highlight=" + highlightActive + 
+                   " -> Result: " + isActive);
+        return isActive;
     }
     
     /**
@@ -476,11 +508,11 @@ public class SelectionModeService extends Service {
                     }
                 }
                 
-                // DO NOT re-enable selection overlay automatically
-                // User must tap logo again to start new selection
-                // This prevents accidental re-drawing and ensures clean state
+                // End Session: Clear highlight and loading
+                hideTextHighlight();
+                hideLoading();
                 
-                Log.d(TAG, "Result popup hidden, waiting for user to tap logo for new selection");
+                Log.d(TAG, "Result popup hidden, session ended");
             } catch (Exception e) {
                 Log.e(TAG, "Error hiding result popup", e);
             }
