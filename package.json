@@ -16,10 +16,14 @@
     "@react-native-google-signin/google-signin": "^16.1.1",
     "@react-native-ml-kit/translate-text": "^0.5.0",
     "@react-native/new-app-screen": "0.83.1",
+    "@shopify/react-native-skia": "^2.4.16",
     "react": "19.2.0",
     "react-native": "0.83.1",
     "react-native-fbsdk-next": "^13.4.1",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native-reanimated": "^4.2.1",
+    "react-native-safe-area-context": "^5.5.2",
+    "react-native-vision-camera": "^4.7.3",
+    "react-native-worklets-core": "^1.6.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
