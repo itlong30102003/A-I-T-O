@@ -347,7 +347,8 @@ public class SelectionOverlayView extends View {
         
         if (!isActive) return;
         
-        // Instruction banner removed as per user request
+        // Draw instruction banner at top
+        drawInstructionBanner(canvas);
         
         // Draw user selection rectangle (blue) while drawing (for PARAGRAPH mode)
         if ("PARAGRAPH".equals(mode) && !selectionRect.isEmpty()) {
@@ -395,6 +396,33 @@ public class SelectionOverlayView extends View {
             // Draw border
             canvas.drawRect(adjustedBox, detectedBoxPaint);
         }
+    }
+    
+    private void drawInstructionBanner(Canvas canvas) {
+        String instruction;
+        if ("WORD".equals(mode)) {
+            if (!detectedBoxes.isEmpty()) {
+                instruction = "👆 Chạm vào khung để dịch (" + detectedBoxes.size() + " từ)";
+            } else {
+                instruction = "⏳ Đang quét văn bản...";
+            }
+        } else {
+            instruction = "✋ Kéo để chọn vùng văn bản";
+        }
+        
+        // Banner dimensions
+        float bannerHeight = 48 * density;
+        float bannerTop = 80 * density; // Below status bar
+        RectF bannerRect = new RectF(16 * density, bannerTop, screenWidth - 16 * density, bannerTop + bannerHeight);
+        
+        // Draw banner background
+        float radius = 12 * density;
+        canvas.drawRoundRect(bannerRect, radius, radius, instructionBgPaint);
+        
+        // Draw text
+        Paint.FontMetrics fm = instructionPaint.getFontMetrics();
+        float textY = bannerRect.centerY() - (fm.ascent + fm.descent) / 2;
+        canvas.drawText(instruction, bannerRect.centerX(), textY, instructionPaint);
     }
     
     private void drawCornerHandles(Canvas canvas, RectF rect, Paint borderPaint) {
