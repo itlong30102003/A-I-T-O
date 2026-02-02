@@ -19,6 +19,7 @@ import { overlayService } from '../services/OverlayService';
 import { realtimePipelineService } from '../services/RealtimePipelineService';
 import { selectionPipelineService } from '../services/SelectionPipelineService';
 import { mlKitTranslationService } from '../services/MLKitTranslationService';
+import LiveTranslationScreen from '../screens/LiveTranslationScreen';
 
 const LANGUAGES = {
     source: [
@@ -40,6 +41,7 @@ export default function MainScreen({ onLogout }) {
     const [captureState, setCaptureState] = useState(screenCaptureService.state);
     const [duration, setDuration] = useState('00:00');
     const [translationMode, setTranslationMode] = useState('REALTIME'); // 'REALTIME' | 'SELECTION' | 'CAMERA'
+    const [showCameraScreen, setShowCameraScreen] = useState(false);
 
     // Language Selection State
     const [sourceLang, setSourceLang] = useState(LANGUAGES.source[0]);
@@ -62,8 +64,18 @@ export default function MainScreen({ onLogout }) {
     const MODES = [
         { id: 'REALTIME', label: '⚡ Realtime', desc: 'Dịch trực tiếp (ML Kit)' },
         { id: 'SELECTION', label: '🖐️ Selection', desc: 'Chọn vùng dịch (ML Kit)' },
-        { id: 'CAMERA', label: '📷 Camera', desc: 'Dịch qua Camera' },
+        { id: 'CAMERA', label: '📷 Camera', desc: 'Dịch qua Camera AR' },
     ];
+
+    // Handle Camera mode selection
+    const handleModeChange = (modeId) => {
+        if (modeId === 'CAMERA') {
+            setShowCameraScreen(true);
+        } else {
+            setTranslationMode(modeId);
+            setShowCameraScreen(false);
+        }
+    };
 
     // Khởi tạo service và subscribe state changes
     useEffect(() => {
@@ -423,6 +435,20 @@ export default function MainScreen({ onLogout }) {
     // Destructure state for easier access
     const { isCapturing, permissionGranted, latestFrame, androidInfo } = captureState;
 
+    // If Camera mode is active, render LiveTranslationScreen instead
+    if (showCameraScreen) {
+        return (
+            <LiveTranslationScreen
+                onBack={() => {
+                    setShowCameraScreen(false);
+                    setTranslationMode('REALTIME');
+                }}
+                sourceLang={sourceLang.code}
+                targetLang={targetLang.code}
+            />
+        );
+    }
+
     return (
         <ScrollView style={styles.container}>
             {/* User Info */}
@@ -495,7 +521,7 @@ export default function MainScreen({ onLogout }) {
                                 styles.modeButton,
                                 translationMode === mode.id && styles.modeButtonActive
                             ]}
-                            onPress={() => setTranslationMode(mode.id)}
+                            onPress={() => handleModeChange(mode.id)}
                         >
                             <Text style={[
                                 styles.modeLabel,

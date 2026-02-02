@@ -42,6 +42,12 @@ const DEBUG_MODE = true;
 // OCR processing interval in ms (5fps = 200ms)
 const OCR_INTERVAL_MS = 300;
 
+interface LiveTranslationScreenProps {
+    onBack?: () => void;
+    sourceLang?: string;
+    targetLang?: string;
+}
+
 interface TextBlock {
     text: string;
     boundingBox: BoundingBox;
@@ -110,7 +116,11 @@ const DebugOverlay: React.FC<DebugOverlayProps> = ({
 /**
  * Main Live Translation Screen Component
  */
-export default function LiveTranslationScreen() {
+export default function LiveTranslationScreen({
+    onBack,
+    sourceLang = 'en',
+    targetLang = 'vi'
+}: LiveTranslationScreenProps) {
     // Camera permission
     const { hasPermission, requestPermission } = useCameraPermission();
 
@@ -126,7 +136,7 @@ export default function LiveTranslationScreen() {
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Processing interval ref
-    const processingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const processingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Request camera permission on mount
     useEffect(() => {
@@ -176,8 +186,10 @@ export default function LiveTranslationScreen() {
 
     // Handle back button
     const handleBack = useCallback(() => {
-        console.log('Back pressed');
-    }, []);
+        if (onBack) {
+            onBack();
+        }
+    }, [onBack]);
 
     // Render permission denied state
     if (!hasPermission) {
