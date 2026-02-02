@@ -12,6 +12,7 @@ import com.aito.device.DevicePackage
 import com.aito.overlay.OverlayPackage
 import com.aito.overlay.SelectionModePackage
 import com.aito.frameprocessor.TextRecognitionPluginPackage
+import com.aito.textrecognition.TextRecognitionPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -26,6 +27,7 @@ class MainApplication : Application(), ReactApplication {
           add(DevicePackage())
           add(OverlayPackage())
           add(SelectionModePackage())
+          add(TextRecognitionPackage())
         },
     )
   }

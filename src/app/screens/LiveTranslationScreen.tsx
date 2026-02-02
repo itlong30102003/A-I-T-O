@@ -33,6 +33,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { createCoordinateMapper, ScreenBoundingBox, BoundingBox } from '../utils/coordinateMapper';
+import type { OCRResult } from '../services/TextRecognitionModule';
+
+const { TextRecognitionModule } = NativeModules;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -160,14 +163,15 @@ export default function LiveTranslationScreen({
                         enableShutterSound: false,
                     });
 
-                    // TODO: Call native OCR module with photo.path
-                    // For now, we just log
                     console.log('Photo taken for OCR:', photo.path);
 
-                    // Simulated OCR result (replace with actual native call)
-                    // const result = await NativeModules.TextRecognition.processImage(photo.path);
-                    // setDisplayBlocks(result.blocks);
-                    // setFrameDimensions({ width: result.frameWidth, height: result.frameHeight });
+                    // Call native OCR module
+                    const result: OCRResult = await TextRecognitionModule.processImage(photo.path);
+
+                    console.log(`OCR detected ${result.blocks.length} blocks`);
+
+                    setDisplayBlocks(result.blocks);
+                    setFrameDimensions({ width: result.frameWidth, height: result.frameHeight });
 
                 } catch (error) {
                     console.log('OCR processing error:', error);
