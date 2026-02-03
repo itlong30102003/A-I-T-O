@@ -59,6 +59,7 @@ export default function MainScreen({ onLogout }) {
         loaded: mlKitTranslationService.modelsLoaded,
         progress: 0,
         total: 4,
+        models: [],
     });
 
     const MODES = [
@@ -486,18 +487,70 @@ export default function MainScreen({ onLogout }) {
                 )}
             </View>
 
-            {/* Model Loading Status Banner */}
-            {modelLoadingStatus.isLoading && (
-                <View style={styles.modelLoadingBanner}>
-                    <ActivityIndicator size="small" color="#fff" />
-                    <View style={styles.modelLoadingTextContainer}>
-                        <Text style={styles.modelLoadingText}>
-                            🔄 Đang tải model dịch... ({modelLoadingStatus.progress}/{modelLoadingStatus.total})
-                        </Text>
-                        <Text style={styles.modelLoadingSubtext}>
-                            Lần đầu sẽ mất vài phút, các lần sau sẽ nhanh hơn
+            {/* Model Loading Status - Detailed Progress */}
+            {(modelLoadingStatus.isLoading || (modelLoadingStatus.models && modelLoadingStatus.models.length > 0 && !modelLoadingStatus.loaded)) && (
+                <View style={styles.modelLoadingCard}>
+                    <View style={styles.modelLoadingHeader}>
+                        <Text style={styles.modelLoadingTitle}>📥 Đang tải Model dịch</Text>
+                        <Text style={styles.modelLoadingSubtitle}>
+                            {modelLoadingStatus.progress}/{modelLoadingStatus.total} hoàn thành
                         </Text>
                     </View>
+
+                    {/* Individual Model Progress */}
+                    {modelLoadingStatus.models && modelLoadingStatus.models.map((model, index) => (
+                        <View key={model.id} style={styles.modelItem}>
+                            <View style={styles.modelItemHeader}>
+                                <Text style={styles.modelEmoji}>{model.emoji}</Text>
+                                <Text style={styles.modelName}>{model.name}</Text>
+                                <Text style={[
+                                    styles.modelStatus,
+                                    model.status === 'completed' && styles.modelStatusCompleted,
+                                    model.status === 'downloading' && styles.modelStatusDownloading,
+                                    model.status === 'failed' && styles.modelStatusFailed,
+                                ]}>
+                                    {model.status === 'pending' && '⏳ Đợi'}
+                                    {model.status === 'downloading' && '⬇️ Đang tải...'}
+                                    {model.status === 'completed' && '✅ Xong'}
+                                    {model.status === 'failed' && '❌ Lỗi'}
+                                </Text>
+                            </View>
+
+                            {/* Progress Bar - show spinner for downloading, bar for completed */}
+                            {model.status === 'downloading' ? (
+                                <View style={styles.downloadingContainer}>
+                                    <ActivityIndicator size="small" color="#1976d2" />
+                                    <Text style={styles.elapsedText}>
+                                        Đang chờ... {model.progress < 0 ? `${Math.abs(model.progress)}s` : ''}
+                                    </Text>
+                                </View>
+                            ) : (
+                                <>
+                                    <View style={styles.progressBarContainer}>
+                                        <View
+                                            style={[
+                                                styles.progressBar,
+                                                model.status === 'completed' && styles.progressBarCompleted,
+                                                model.status === 'failed' && styles.progressBarFailed,
+                                                { width: model.status === 'completed' ? '100%' : '0%' }
+                                            ]}
+                                        />
+                                    </View>
+                                    <Text style={styles.progressText}>
+                                        {model.status === 'completed' ? '100%' : model.status === 'pending' ? 'Đợi...' : '0%'}
+                                    </Text>
+                                </>
+                            )}
+
+                            {model.error && (
+                                <Text style={styles.modelError}>{model.error}</Text>
+                            )}
+                        </View>
+                    ))}
+
+                    <Text style={styles.modelLoadingHint}>
+                        💡 Lần đầu mất vài phút. Cần kết nối WiFi ổn định.
+                    </Text>
                 </View>
             )}
 
@@ -505,7 +558,7 @@ export default function MainScreen({ onLogout }) {
             {modelLoadingStatus.loaded && !modelLoadingStatus.isLoading && (
                 <View style={styles.modelLoadedBanner}>
                     <Text style={styles.modelLoadedText}>
-                        ✅ Model dịch đã sẵn sàng
+                        ✅ Model dịch đã sẵn sàng ({modelLoadingStatus.total}/{modelLoadingStatus.total})
                     </Text>
                 </View>
             )}
@@ -774,6 +827,122 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.8)',
         fontSize: 12,
         marginTop: 2,
+    },
+    // NEW: Detailed model loading card
+    modelLoadingCard: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    modelLoadingHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    modelLoadingTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1976d2',
+    },
+    modelLoadingSubtitle: {
+        fontSize: 14,
+        color: '#666',
+        fontWeight: '500',
+    },
+    modelItem: {
+        marginBottom: 14,
+        paddingBottom: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    modelItemHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    modelEmoji: {
+        fontSize: 18,
+        marginRight: 8,
+    },
+    modelName: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        flex: 1,
+    },
+    modelStatus: {
+        fontSize: 12,
+        color: '#888',
+        fontWeight: '500',
+    },
+    modelStatusCompleted: {
+        color: '#4caf50',
+    },
+    modelStatusDownloading: {
+        color: '#1976d2',
+    },
+    modelStatusFailed: {
+        color: '#f44336',
+    },
+    progressBarContainer: {
+        height: 8,
+        backgroundColor: '#e0e0e0',
+        borderRadius: 4,
+        overflow: 'hidden',
+        marginBottom: 4,
+    },
+    progressBar: {
+        height: '100%',
+        backgroundColor: '#90caf9',
+        borderRadius: 4,
+    },
+    progressBarCompleted: {
+        backgroundColor: '#4caf50',
+    },
+    progressBarDownloading: {
+        backgroundColor: '#1976d2',
+    },
+    progressBarFailed: {
+        backgroundColor: '#f44336',
+    },
+    downloadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+    elapsedText: {
+        fontSize: 12,
+        color: '#1976d2',
+        marginLeft: 8,
+        fontWeight: '500',
+    },
+    progressText: {
+        fontSize: 11,
+        color: '#888',
+        textAlign: 'right',
+    },
+    modelError: {
+        fontSize: 11,
+        color: '#f44336',
+        marginTop: 4,
+        fontStyle: 'italic',
+    },
+    modelLoadingHint: {
+        fontSize: 12,
+        color: '#888',
+        textAlign: 'center',
+        marginTop: 8,
+        fontStyle: 'italic',
     },
     modelLoadedBanner: {
         backgroundColor: '#e8f5e9',
