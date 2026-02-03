@@ -21,6 +21,17 @@
       android:supportsRtl="true"
       android:largeHeap="true">
 
+      <!-- ML Kit Dependencies - Auto download models on app install -->
+      <meta-data
+          android:name="com.google.mlkit.vision.DEPENDENCIES"
+          android:value="ocr" />
+      <meta-data
+          android:name="com.google.firebase.ml.vision.DEPENDENCIES"
+          android:value="ocr" />
+      <meta-data
+          android:name="com.google.mlkit.nl.translate.DEPENDENCIES"
+          android:value="en,vi,zh,ja,ko" />
+
       <!-- Facebook SDK Meta Data -->
       <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
       <meta-data android:name="com.facebook.sdk.ClientToken" android:value="@string/facebook_client_token"/>

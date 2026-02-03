@@ -1,21 +1,38 @@
 import TranslateText, { TranslateLanguage } from '@react-native-ml-kit/translate-text';
 import { TranslationRequest, TranslationResponse } from './RemoteTranslationService';
 
+// Individual model download status
+export interface ModelDownloadInfo {
+    id: string;          // Unique identifier
+    name: string;        // Display name (e.g., "EN → VI")
+    emoji: string;       // Flag emoji
+    status: 'pending' | 'downloading' | 'completed' | 'failed';
+    progress: number;    // 0-100
+    error?: string;
+}
+
 // Model loading status interface
 export interface ModelLoadingStatus {
     isLoading: boolean;
     loaded: boolean;
     progress: number;
     total: number;
+    models: ModelDownloadInfo[];  // Detailed status for each model
 }
 
 // Define language pairs to preload - most common combinations
-const PRELOAD_LANGUAGE_PAIRS: Array<{ source: TranslateLanguage; target: TranslateLanguage }> = [
-    { source: TranslateLanguage.ENGLISH, target: TranslateLanguage.VIETNAMESE },
-    { source: TranslateLanguage.CHINESE, target: TranslateLanguage.VIETNAMESE },
-    { source: TranslateLanguage.JAPANESE, target: TranslateLanguage.VIETNAMESE },
-    { source: TranslateLanguage.KOREAN, target: TranslateLanguage.VIETNAMESE },
-];
+const PRELOAD_LANGUAGE_PAIRS: Array<{
+    source: TranslateLanguage;
+    target: TranslateLanguage;
+    id: string;
+    name: string;
+    emoji: string;
+}> = [
+        { source: TranslateLanguage.ENGLISH, target: TranslateLanguage.VIETNAMESE, id: 'en-vi', name: 'EN → VI', emoji: '🇺🇸🇻🇳' },
+        { source: TranslateLanguage.CHINESE, target: TranslateLanguage.VIETNAMESE, id: 'zh-vi', name: 'ZH → VI', emoji: '🇨🇳🇻🇳' },
+        { source: TranslateLanguage.JAPANESE, target: TranslateLanguage.VIETNAMESE, id: 'ja-vi', name: 'JA → VI', emoji: '🇯🇵🇻🇳' },
+        { source: TranslateLanguage.KOREAN, target: TranslateLanguage.VIETNAMESE, id: 'ko-vi', name: 'KO → VI', emoji: '🇰🇷🇻🇳' },
+    ];
 
 class MLKitTranslationService {
     private _isModelLoading = false;
@@ -23,6 +40,18 @@ class MLKitTranslationService {
     private _loadingProgress = 0;
     private _loadingTotal = PRELOAD_LANGUAGE_PAIRS.length;
     private _statusListeners: Array<(status: ModelLoadingStatus) => void> = [];
+    private _modelStatuses: ModelDownloadInfo[] = [];
+
+    constructor() {
+        // Initialize model statuses
+        this._modelStatuses = PRELOAD_LANGUAGE_PAIRS.map(pair => ({
+            id: pair.id,
+            name: pair.name,
+            emoji: pair.emoji,
+            status: 'pending' as const,
+            progress: 0,
+        }));
+    }
 
     get isModelLoading(): boolean {
         return this._isModelLoading;
@@ -38,6 +67,10 @@ class MLKitTranslationService {
 
     get loadingTotal(): number {
         return this._loadingTotal;
+    }
+
+    get modelStatuses(): ModelDownloadInfo[] {
+        return [...this._modelStatuses];
     }
 
     /**
@@ -56,8 +89,14 @@ class MLKitTranslationService {
             loaded: this._modelsLoaded,
             progress: this._loadingProgress,
             total: this._loadingTotal,
+            models: [...this._modelStatuses],
         };
         this._statusListeners.forEach(cb => cb(status));
+    }
+
+    private updateModelStatus(index: number, updates: Partial<ModelDownloadInfo>): void {
+        this._modelStatuses[index] = { ...this._modelStatuses[index], ...updates };
+        this.notifyStatusChange();
     }
 
     /**
@@ -72,6 +111,15 @@ class MLKitTranslationService {
 
         this._isModelLoading = true;
         this._loadingProgress = 0;
+
+        // Reset all models to pending
+        this._modelStatuses = PRELOAD_LANGUAGE_PAIRS.map(pair => ({
+            id: pair.id,
+            name: pair.name,
+            emoji: pair.emoji,
+            status: 'pending' as const,
+            progress: 0,
+        }));
         this.notifyStatusChange();
 
         console.log(`MLKitTranslationService: Starting to preload ${PRELOAD_LANGUAGE_PAIRS.length} translation models...`);
@@ -79,22 +127,58 @@ class MLKitTranslationService {
 
         for (let i = 0; i < PRELOAD_LANGUAGE_PAIRS.length; i++) {
             const pair = PRELOAD_LANGUAGE_PAIRS[i];
-            try {
-                console.log(`MLKitTranslationService: Preloading model ${i + 1}/${PRELOAD_LANGUAGE_PAIRS.length} (${pair.source} -> ${pair.target})`);
 
-                // Translate a simple text to trigger model download
-                await TranslateText.translate({
-                    text: 'Hello',
-                    sourceLanguage: pair.source,
-                    targetLanguage: pair.target,
-                    downloadModelIfNeeded: true,
+            // Set status to downloading with start time
+            const downloadStartTime = Date.now();
+            this.updateModelStatus(i, { status: 'downloading', progress: 0 });
+
+            try {
+                console.log(`MLKitTranslationService: Preloading model ${i + 1}/${PRELOAD_LANGUAGE_PAIRS.length} (${pair.name})`);
+
+                // Show elapsed time while downloading (no fake progress)
+                const elapsedInterval = setInterval(() => {
+                    const elapsedSec = Math.floor((Date.now() - downloadStartTime) / 1000);
+                    // Update progress as elapsed seconds (for UI display)
+                    // Use negative value to indicate "waiting" mode, not actual %
+                    this.updateModelStatus(i, { progress: -elapsedSec });
+                }, 1000);
+
+                // Create a timeout promise (30 seconds)
+                const timeoutPromise = new Promise<never>((_, reject) => {
+                    setTimeout(() => reject(new Error('Download timeout (30s). Check WiFi connection and try again.')), 30000);
                 });
 
+                // Race between translate and timeout
+                await Promise.race([
+                    TranslateText.translate({
+                        text: 'Hello',
+                        sourceLanguage: pair.source,
+                        targetLanguage: pair.target,
+                        downloadModelIfNeeded: true,
+                    }),
+                    timeoutPromise
+                ]);
+
+                clearInterval(elapsedInterval);
+
+                // Mark as completed
+                this.updateModelStatus(i, { status: 'completed', progress: 100 });
                 this._loadingProgress = i + 1;
                 this.notifyStatusChange();
-                console.log(`MLKitTranslationService: Model ${pair.source} -> ${pair.target} ready`);
-            } catch (error) {
-                console.warn(`MLKitTranslationService: Failed to preload ${pair.source} -> ${pair.target}:`, error);
+
+                console.log(`MLKitTranslationService: Model ${pair.name} ready`);
+            } catch (error: any) {
+                // Mark as failed
+                const errorMessage = error?.message || 'Download failed';
+                const isTimeout = errorMessage.includes('timeout');
+                this.updateModelStatus(i, {
+                    status: 'failed',
+                    progress: 0,
+                    error: isTimeout
+                        ? '⏱️ Timeout! Kiểm tra WiFi/DNS hoặc thử lại.'
+                        : errorMessage
+                });
+                console.warn(`MLKitTranslationService: Failed to preload ${pair.name}:`, error);
             }
         }
 
@@ -102,7 +186,7 @@ class MLKitTranslationService {
         console.log(`MLKitTranslationService: All models preloaded in ${duration}ms`);
 
         this._isModelLoading = false;
-        this._modelsLoaded = true;
+        this._modelsLoaded = this._modelStatuses.every(m => m.status === 'completed');
         this.notifyStatusChange();
     }
 
