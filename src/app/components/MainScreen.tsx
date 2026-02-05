@@ -39,6 +39,7 @@ import { realtimePipelineService } from '../services/RealtimePipelineService';
 import { selectionPipelineService } from '../services/SelectionPipelineService';
 import { mlKitTranslationService } from '../services/MLKitTranslationService';
 import LiveTranslationScreen from '../screens/LiveTranslationScreen';
+import ResourceScreen from '../screens/ResourceScreen';
 
 interface MainScreenProps {
     onLogout?: () => void;
@@ -70,6 +71,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
     const [showLanguageModal, setShowLanguageModal] = useState<'source' | 'target' | null>(null);
     const [showResultModal, setShowResultModal] = useState(false);
     const [selectedText, setSelectedText] = useState('Nội dung sẽ được dịch ở đây...');
+    const [currentTab, setCurrentTab] = useState<'HOME' | 'RESOURCE'>('HOME');
 
     // Model Loading State
     const [modelLoadingStatus, setModelLoadingStatus] = useState({
@@ -234,166 +236,192 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         );
     }
 
+    // Early return for Resource Tab
+    if (currentTab === 'RESOURCE') {
+        return (
+            <View style={{ flex: 1 }}>
+                <ResourceScreen />
+                {/* Bottom Tab Bar */}
+                <View style={styles.tabBar}>
+                    <TouchableOpacity
+                        style={styles.tabItem}
+                        onPress={() => setCurrentTab('HOME')}
+                    >
+                        <Text style={styles.tabLabel}>🏠 Home</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tabItem, styles.tabItemActive]}
+                        onPress={() => setCurrentTab('RESOURCE')}
+                    >
+                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>📊 Resource</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
     return (
-        <ScrollView style={styles.container}>
-            {/* User Info */}
-            <View style={styles.userSection}>
-                <Text style={styles.userName}>
-                    {user?.displayName || user?.email || 'Chưa có tên'}
-                </Text>
-                <Text style={styles.userEmail}>{user?.email}</Text>
-            </View>
+        <View style={{ flex: 1 }}>
+            <ScrollView style={styles.container}>
+                {/* User Info */}
+                <View style={styles.userSection}>
+                    <Text style={styles.userName}>
+                        {user?.displayName || user?.email || 'Chưa có tên'}
+                    </Text>
+                    <Text style={styles.userEmail}>{user?.email}</Text>
+                </View>
 
-            {/* Device Info - Using extracted component */}
-            <DeviceInfoSection androidInfo={androidInfo} />
+                {/* Device Info - Using extracted component */}
+                <DeviceInfoSection androidInfo={androidInfo} />
 
-            {/* Model Loading - Using extracted component */}
-            <ModelLoadingCard status={modelLoadingStatus} />
+                {/* Model Loading - Using extracted component */}
+                <ModelLoadingCard status={modelLoadingStatus} />
 
-            {/* Mode Selector */}
-            <View style={styles.modeSection}>
-                <Text style={styles.sectionTitle}>🛠️ Chế độ dịch</Text>
-                <View style={styles.modeContainer}>
-                    {MODES.map((mode) => (
+                {/* Mode Selector */}
+                <View style={styles.modeSection}>
+                    <Text style={styles.sectionTitle}>🛠️ Chế độ dịch</Text>
+                    <View style={styles.modeContainer}>
+                        {MODES.map((mode) => (
+                            <TouchableOpacity
+                                key={mode.id}
+                                style={[
+                                    styles.modeButton,
+                                    translationMode === mode.id && styles.modeButtonActive
+                                ]}
+                                onPress={() => handleModeChange(mode.id as TranslationMode)}
+                            >
+                                <Text style={[
+                                    styles.modeLabel,
+                                    translationMode === mode.id && styles.modeLabelActive
+                                ]}>
+                                    {mode.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                    <Text style={styles.modeDescription}>{currentModeDesc}</Text>
+
+                    {/* Selection Type - Using extracted component */}
+                    {translationMode === 'SELECTION' && (
+                        <SelectionTypeSelector
+                            selectionType={selectionType}
+                            onTypeChange={setSelectionType}
+                        />
+                    )}
+                </View>
+
+                {/* Language Selector */}
+                <View style={styles.languageSection}>
+                    <Text style={styles.sectionTitle}>🌐 Ngôn ngữ</Text>
+                    <View style={styles.languageRow}>
                         <TouchableOpacity
-                            key={mode.id}
-                            style={[
-                                styles.modeButton,
-                                translationMode === mode.id && styles.modeButtonActive
-                            ]}
-                            onPress={() => handleModeChange(mode.id as TranslationMode)}
+                            style={styles.languageButton}
+                            onPress={() => setShowLanguageModal('source')}
                         >
-                            <Text style={[
-                                styles.modeLabel,
-                                translationMode === mode.id && styles.modeLabelActive
-                            ]}>
-                                {mode.label}
-                            </Text>
+                            <Text style={styles.languageLabel}>Nguồn</Text>
+                            <Text style={styles.languageValue}>{sourceLang.label}</Text>
                         </TouchableOpacity>
-                    ))}
+
+                        <Text style={styles.arrow}>➡️</Text>
+
+                        <TouchableOpacity
+                            style={styles.languageButton}
+                            onPress={() => setShowLanguageModal('target')}
+                        >
+                            <Text style={styles.languageLabel}>Đích</Text>
+                            <Text style={styles.languageValue}>{targetLang.label}</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-                <Text style={styles.modeDescription}>{currentModeDesc}</Text>
 
-                {/* Selection Type - Using extracted component */}
-                {translationMode === 'SELECTION' && (
-                    <SelectionTypeSelector
-                        selectionType={selectionType}
-                        onTypeChange={setSelectionType}
-                    />
-                )}
-            </View>
+                {/* Screen Capture Controls - Only for REALTIME mode */}
+                {translationMode === 'REALTIME' && (
+                    <View style={styles.captureSection}>
+                        <Text style={styles.sectionTitle}>🎥 Screen Capture</Text>
 
-            {/* Language Selector */}
-            <View style={styles.languageSection}>
-                <Text style={styles.sectionTitle}>🌐 Ngôn ngữ</Text>
-                <View style={styles.languageRow}>
-                    <TouchableOpacity
-                        style={styles.languageButton}
-                        onPress={() => setShowLanguageModal('source')}
-                    >
-                        <Text style={styles.languageLabel}>Nguồn</Text>
-                        <Text style={styles.languageValue}>{sourceLang.label}</Text>
-                    </TouchableOpacity>
-
-                    <Text style={styles.arrow}>➡️</Text>
-
-                    <TouchableOpacity
-                        style={styles.languageButton}
-                        onPress={() => setShowLanguageModal('target')}
-                    >
-                        <Text style={styles.languageLabel}>Đích</Text>
-                        <Text style={styles.languageValue}>{targetLang.label}</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Screen Capture Controls - Only for REALTIME mode */}
-            {translationMode === 'REALTIME' && (
-                <View style={styles.captureSection}>
-                    <Text style={styles.sectionTitle}>🎥 Screen Capture</Text>
-
-                    <View style={styles.statusContainer}>
-                        <View style={styles.statusRow}>
-                            <Text style={styles.statusLabel}>Nguồn:</Text>
-                            <Text style={[
-                                styles.statusValue,
-                                permissionGranted ? styles.statusSuccess : styles.statusError
-                            ]}>
-                                {permissionGranted ? '✅ Đã chọn' : '❌ Chưa chọn'}
-                            </Text>
-                        </View>
-                        <View style={styles.statusRow}>
-                            <Text style={styles.statusLabel}>Trạng thái:</Text>
-                            <View style={styles.statusValueContainer}>
-                                {isCapturing && <View style={styles.pulsingDot} />}
+                        <View style={styles.statusContainer}>
+                            <View style={styles.statusRow}>
+                                <Text style={styles.statusLabel}>Nguồn:</Text>
                                 <Text style={[
                                     styles.statusValue,
-                                    isCapturing ? styles.statusSuccess : styles.statusError
+                                    permissionGranted ? styles.statusSuccess : styles.statusError
                                 ]}>
-                                    {isCapturing ? 'Đang capture' : 'Đã dừng'}
+                                    {permissionGranted ? '✅ Đã chọn' : '❌ Chưa chọn'}
                                 </Text>
                             </View>
-                        </View>
-                        {isCapturing && (
                             <View style={styles.statusRow}>
-                                <Text style={styles.statusLabel}>Thời gian:</Text>
-                                <Text style={styles.statusValue}>⏱️ {duration}</Text>
+                                <Text style={styles.statusLabel}>Trạng thái:</Text>
+                                <View style={styles.statusValueContainer}>
+                                    {isCapturing && <View style={styles.pulsingDot} />}
+                                    <Text style={[
+                                        styles.statusValue,
+                                        isCapturing ? styles.statusSuccess : styles.statusError
+                                    ]}>
+                                        {isCapturing ? 'Đang capture' : 'Đã dừng'}
+                                    </Text>
+                                </View>
                             </View>
+                            {isCapturing && (
+                                <View style={styles.statusRow}>
+                                    <Text style={styles.statusLabel}>Thời gian:</Text>
+                                    <Text style={styles.statusValue}>⏱️ {duration}</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        {!permissionGranted && !isCapturing && (
+                            <TouchableOpacity
+                                style={styles.buttonPrimary}
+                                onPress={handleSelectApp}
+                            >
+                                <Text style={styles.buttonText}>
+                                    {androidInfo?.supportsAppSelection
+                                        ? '🎯 Chọn App để Capture'
+                                        : '📺 Cấp quyền Capture'}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {permissionGranted && (
+                            <>
+                                <View style={styles.buttonRow}>
+                                    <TouchableOpacity
+                                        style={[styles.buttonStart, isCapturing && styles.buttonDisabled]}
+                                        onPress={handleStartCapture}
+                                        disabled={isCapturing}
+                                    >
+                                        <Text style={styles.buttonText}>▶️ Bắt đầu</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={[styles.buttonStop, !isCapturing && styles.buttonDisabled]}
+                                        onPress={handleStopCapture}
+                                        disabled={!isCapturing}
+                                    >
+                                        <Text style={styles.buttonText}>⏹️ Dừng</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {androidInfo?.supportsAppSelection && (
+                                    <TouchableOpacity
+                                        style={styles.buttonChangeApp}
+                                        onPress={handleChangeApp}
+                                    >
+                                        <Text style={styles.buttonChangeAppText}>
+                                            🔄 Đổi App Capture
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
+                            </>
                         )}
                     </View>
+                )}
 
-                    {!permissionGranted && !isCapturing && (
-                        <TouchableOpacity
-                            style={styles.buttonPrimary}
-                            onPress={handleSelectApp}
-                        >
-                            <Text style={styles.buttonText}>
-                                {androidInfo?.supportsAppSelection
-                                    ? '🎯 Chọn App để Capture'
-                                    : '📺 Cấp quyền Capture'}
-                            </Text>
-                        </TouchableOpacity>
-                    )}
-
-                    {permissionGranted && (
-                        <>
-                            <View style={styles.buttonRow}>
-                                <TouchableOpacity
-                                    style={[styles.buttonStart, isCapturing && styles.buttonDisabled]}
-                                    onPress={handleStartCapture}
-                                    disabled={isCapturing}
-                                >
-                                    <Text style={styles.buttonText}>▶️ Bắt đầu</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.buttonStop, !isCapturing && styles.buttonDisabled]}
-                                    onPress={handleStopCapture}
-                                    disabled={!isCapturing}
-                                >
-                                    <Text style={styles.buttonText}>⏹️ Dừng</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            {androidInfo?.supportsAppSelection && (
-                                <TouchableOpacity
-                                    style={styles.buttonChangeApp}
-                                    onPress={handleChangeApp}
-                                >
-                                    <Text style={styles.buttonChangeAppText}>
-                                        🔄 Đổi App Capture
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        </>
-                    )}
-                </View>
-            )}
-
-            {/* Logout Button */}
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Text style={styles.logoutText}>🚪 Đăng xuất</Text>
-            </TouchableOpacity>
+                {/* Logout Button */}
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                    <Text style={styles.logoutText}>🚪 Đăng xuất</Text>
+                </TouchableOpacity>
+            </ScrollView>
 
             {/* Language Modal - Using extracted component */}
             <LanguageModal
@@ -433,7 +461,23 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                     </View>
                 </TouchableOpacity>
             </Modal>
-        </ScrollView>
+
+            {/* Bottom Tab Bar */}
+            <View style={styles.tabBar}>
+                <TouchableOpacity
+                    style={[styles.tabItem, styles.tabItemActive]}
+                    onPress={() => setCurrentTab('HOME')}
+                >
+                    <Text style={[styles.tabLabel, styles.tabLabelActive]}>🏠 Home</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.tabItem}
+                    onPress={() => setCurrentTab('RESOURCE')}
+                >
+                    <Text style={styles.tabLabel}>📊 Resource</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
     );
 });
 
@@ -487,6 +531,14 @@ const styles = StyleSheet.create({
     translatedTextContent: { fontSize: 16, lineHeight: 24, color: '#444' },
     resultFooter: { marginTop: 15, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 10 },
     resultMeta: { fontSize: 12, color: '#888', fontStyle: 'italic' },
+    tabBar: { flexDirection: 'row', height: 60, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee', paddingBottom: 5 },
+    tabItem: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    tabItemActive: { borderTopWidth: 2, borderTopColor: '#4285F4' },
+    tabLabel: { fontSize: 12, color: '#666', marginTop: 4 },
+    tabLabelActive: { color: '#4285F4', fontWeight: 'bold' },
+    modeSectionHeader: { position: 'absolute', top: 16, left: 16 },
+    backButton: { backgroundColor: 'rgba(255,255,255,0.9)', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#eee' },
+    backButtonText: { fontSize: 14, fontWeight: 'bold', color: '#4285F4' },
 });
 
 export default MainScreen;
