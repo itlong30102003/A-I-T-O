@@ -1,5 +1,5 @@
-import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { TranslationRequest, TranslationResponse } from './RemoteTranslationService';
 
 interface HistoryItem {
@@ -14,7 +14,9 @@ interface HistoryItem {
 }
 
 class HistoryService {
-    private collectionRef = firestore().collection('translations');
+    private getCollection() {
+        return firestore().collection('translations');
+    }
 
     async save(request: TranslationRequest, response: TranslationResponse, strategy: string): Promise<void> {
         const user = auth().currentUser;
@@ -24,24 +26,18 @@ class HistoryService {
         }
 
         try {
-            // Handle Batch vs Dictionary vs Simple
-            // For now, assume simple text or simple batch
-            // Flatten batch results for history? Or save as one batch?
-            // "Dịch theo vùng chọn (ML Kit + lưu lịch sử dịch)" - save individual translations.
-            // If it's a batch, we probably want to save individual known good translations or the whole session.
-            // Let's iterate if it's a batch of independent items.
-
+            const collectionRef = this.getCollection();
             if (response.results) {
                 const batch = firestore().batch();
                 response.results.forEach(item => {
                     const sourceItem = request.items?.find(i => i.id === item.id);
                     if (sourceItem) {
-                        const docRef = this.collectionRef.doc();
+                        const docRef = collectionRef.doc();
                         batch.set(docRef, {
                             userId: user.uid,
                             sourceText: sourceItem.text,
                             translatedText: item.t,
-                            sourceLanguage: 'auto', // or from request if available
+                            sourceLanguage: 'auto',
                             targetLanguage: request.targetLanguage,
                             timestamp: Date.now(),
                             appName: request.appName,
@@ -51,7 +47,7 @@ class HistoryService {
                 });
                 await batch.commit();
             } else if (response.translatedText && request.text) {
-                await this.collectionRef.add({
+                await collectionRef.add({
                     userId: user.uid,
                     sourceText: request.text,
                     translatedText: response.translatedText,
@@ -62,13 +58,11 @@ class HistoryService {
                     strategy: strategy
                 });
             }
-            console.log('HistoryService: Saved translation to history');
+            // Add retrieval methods later if needed
         } catch (error) {
-            console.error('HistoryService: Failed to save history', error);
+            console.error('HistoryService: Error saving history', error);
         }
     }
-
-    // Add retrieval methods later if needed
 }
 
 export default new HistoryService();

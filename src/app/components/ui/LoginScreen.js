@@ -78,6 +78,7 @@ export default function LoginScreen({ onLoginSuccess }) {
 
             if (onLoginSuccess) onLoginSuccess();
         } catch (error) {
+            console.error('Email auth error:', error);
             let message = 'Đã có lỗi xảy ra';
             if (error.code === 'auth/email-already-in-use') {
                 message = 'Email này đã được sử dụng';

@@ -78,7 +78,6 @@ export default function MainScreen({ onLogout }) {
         }
     };
 
-    // Khởi tạo service và subscribe state changes
     useEffect(() => {
         // Get current user
         const currentUser = auth().currentUser;

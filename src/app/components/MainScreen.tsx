@@ -71,7 +71,6 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
     const [showLanguageModal, setShowLanguageModal] = useState<'source' | 'target' | null>(null);
     const [showResultModal, setShowResultModal] = useState(false);
     const [selectedText, setSelectedText] = useState('Nội dung sẽ được dịch ở đây...');
-    const [currentTab, setCurrentTab] = useState<'HOME' | 'RESOURCE'>('HOME');
 
     // Model Loading State
     const [modelLoadingStatus, setModelLoadingStatus] = useState({
@@ -236,29 +235,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         );
     }
 
-    // Early return for Resource Tab
-    if (currentTab === 'RESOURCE') {
-        return (
-            <View style={{ flex: 1 }}>
-                <ResourceScreen />
-                {/* Bottom Tab Bar */}
-                <View style={styles.tabBar}>
-                    <TouchableOpacity
-                        style={styles.tabItem}
-                        onPress={() => setCurrentTab('HOME')}
-                    >
-                        <Text style={styles.tabLabel}>🏠 Home</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tabItem, styles.tabItemActive]}
-                        onPress={() => setCurrentTab('RESOURCE')}
-                    >
-                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>📊 Resource</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    }
+
 
     return (
         <View style={{ flex: 1 }}>
@@ -462,21 +439,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                 </TouchableOpacity>
             </Modal>
 
-            {/* Bottom Tab Bar */}
-            <View style={styles.tabBar}>
-                <TouchableOpacity
-                    style={[styles.tabItem, styles.tabItemActive]}
-                    onPress={() => setCurrentTab('HOME')}
-                >
-                    <Text style={[styles.tabLabel, styles.tabLabelActive]}>🏠 Home</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.tabItem}
-                    onPress={() => setCurrentTab('RESOURCE')}
-                >
-                    <Text style={styles.tabLabel}>📊 Resource</Text>
-                </TouchableOpacity>
-            </View>
+
         </View>
     );
 });
