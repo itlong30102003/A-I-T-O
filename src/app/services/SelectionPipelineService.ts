@@ -313,7 +313,7 @@ class SelectionPipelineService {
                 sourceLanguage: this.config.sourceLanguage === 'auto' ? undefined : this.config.sourceLanguage,
                 targetLanguage: this.config.targetLanguage,
                 strategy: 'MLKIT',
-                saveHistory: false,
+                saveHistory: true, // Enable history saving
             });
 
             const translatedText = response.results?.[0]?.t || 'Không thể dịch';
@@ -409,7 +409,7 @@ class SelectionPipelineService {
                 sourceLanguage: this.config.sourceLanguage === 'auto' ? undefined : this.config.sourceLanguage,
                 targetLanguage: this.config.targetLanguage,
                 strategy: 'MLKIT',
-                saveHistory: false, // Disabled temporarily
+                saveHistory: true, // Enable history saving
             });
 
             const translatedText = response.results?.[0]?.t || 'Không thể dịch';

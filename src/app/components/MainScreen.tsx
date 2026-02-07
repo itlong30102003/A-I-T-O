@@ -29,7 +29,9 @@ import { useCaptureState } from '../modules/core/hooks/useCaptureState';
 import { LanguageModal, DeviceInfoSection, ModelLoadingCard } from '../modules/ui';
 
 // Selection module imports
-import { SelectionTypeSelector } from '../modules/selection';
+// Selection module imports
+import SelectionTypeSelector from '../modules/selection/SelectionTypeSelector';
+import HistoryList from '../modules/selection/HistoryList';
 
 // Services (unchanged - preserving business logic)
 import { screenCaptureService } from '../services/ScreenCaptureService';
@@ -280,10 +282,13 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
 
                     {/* Selection Type - Using extracted component */}
                     {translationMode === 'SELECTION' && (
-                        <SelectionTypeSelector
-                            selectionType={selectionType}
-                            onTypeChange={setSelectionType}
-                        />
+                        <>
+                            <SelectionTypeSelector
+                                selectionType={selectionType}
+                                onTypeChange={setSelectionType}
+                            />
+                            <HistoryList strategy={selectionType} />
+                        </>
                     )}
                 </View>
 
