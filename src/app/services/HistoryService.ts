@@ -10,7 +10,6 @@ export interface HistoryItem {
     sourceLanguage: string;
     targetLanguage: string;
     timestamp: number;
-    appName?: string;
     strategy: string;
 }
 
@@ -41,7 +40,6 @@ class HistoryService {
                             sourceLanguage: 'auto',
                             targetLanguage: request.targetLanguage,
                             timestamp: Date.now(),
-                            appName: request.appName || 'Unknown',
                             strategy: strategy
                         });
                     }
@@ -56,7 +54,6 @@ class HistoryService {
                     sourceLanguage: 'auto',
                     targetLanguage: request.targetLanguage,
                     timestamp: Date.now(),
-                    appName: request.appName || 'Unknown',
                     strategy: strategy
                 });
                 console.log('HistoryService: Single item saved successfully');

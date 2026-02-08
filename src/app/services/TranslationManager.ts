@@ -33,9 +33,9 @@ class TranslationManager {
         try {
             const response = await MLKitTranslationService.translate(request);
 
-            if (request.saveHistory) {
+            if (request.saveHistory && request.selectionMode) {
                 const HistoryService = require('./HistoryService').default;
-                HistoryService.save(request, response, 'MLKIT').catch((err: any) =>
+                HistoryService.save(request, response, request.selectionMode).catch((err: any) =>
                     console.error('TranslationManager: Background history save failed', err)
                 );
             }

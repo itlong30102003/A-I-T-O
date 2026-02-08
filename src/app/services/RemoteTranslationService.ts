@@ -6,12 +6,12 @@ export interface BatchItem {
 export interface TranslationRequest {
     text?: string;
     items?: BatchItem[]; // New: support for batch
-    appName?: string;
     appCategory?: string;
     sourceLanguage?: string;  // Source language code (e.g. 'en', 'zh', 'auto')
     targetLanguage: string;   // Target language code (e.g. 'vi', 'en')
     strategy?: 'MLKIT';
     saveHistory?: boolean;
+    selectionMode?: 'WORD' | 'PARAGRAPH'; // Mode for history tracking
 }
 
 export interface TranslationResponse {
@@ -30,14 +30,14 @@ class RemoteTranslationService {
         const isBatch = !!request.items && request.items.length > 0;
 
         // 1. Context & Rules
-        const contextInfo = request.appName ? `App Name: "${request.appName}"` : "General Application";
+        const contextInfo = "General Application";
         const categoryInfo = request.appCategory ? `Category/Genre: "${request.appCategory}"` : "General Utility";
 
         const systemInstruction = `
 ROLE: Bạn là chuyên gia bản địa hóa (Localization Expert) cho ứng dụng di động.
 CONTEXT: 
-- ${request.appName ? `App Name: "${request.appName}"` : "General Application"}
-- ${request.appCategory ? `Category/Genre: "${request.appCategory}"` : "General Utility"}
+- ${contextInfo}
+- ${categoryInfo}
 
 RULES:
 1. Dịch sang ${request.targetLanguage} một cách tự nhiên, phù hợp với ngữ cảnh game/truyện/app ở trên.
