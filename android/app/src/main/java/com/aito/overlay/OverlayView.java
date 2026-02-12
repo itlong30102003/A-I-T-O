@@ -31,6 +31,10 @@ public class OverlayView extends View {
     private List<TextBlock> textBlocks = new ArrayList<>();
     private int statusBarHeight = 0;
     
+    // Settings: overlay style & text size
+    private String overlayStyleMode = "dark"; // "dark" = black bg white text, "light" = white bg black text
+    private float textSizeScale = 1.0f;
+    
     // Logo properties
     private RectF logoRect = new RectF();
     private boolean isLogoVisible = false;
@@ -98,6 +102,23 @@ public class OverlayView extends View {
     
     public void setOnNavbarEventListener(OnNavbarEventListener listener) {
         this.navbarEventListener = listener;
+    }
+    
+    public void setOverlayStyle(String style) {
+        this.overlayStyleMode = style != null ? style : "dark";
+        if ("light".equals(overlayStyleMode)) {
+            paintBackground.setColor(Color.argb(230, 255, 255, 255));
+            textPaint.setColor(Color.BLACK);
+        } else {
+            paintBackground.setColor(Color.argb(200, 0, 0, 0));
+            textPaint.setColor(Color.WHITE);
+        }
+        invalidate();
+    }
+    
+    public void setTextSizeScale(float scale) {
+        this.textSizeScale = Math.max(0.5f, Math.min(2.0f, scale));
+        invalidate();
     }
 
     public OverlayView(Context context) {
@@ -358,7 +379,7 @@ public class OverlayView extends View {
             int availableHeight = boxHeight - (padding * 2);
             if (availableWidth <= 0 || availableHeight <= 0) continue;
 
-            float optimalSize = findOptimalTextSize(block.text, availableWidth, availableHeight, 12f, 100f);
+            float optimalSize = findOptimalTextSize(block.text, availableWidth, availableHeight, 12f * textSizeScale, 100f * textSizeScale);
             textPaint.setTextSize(optimalSize);
 
             StaticLayout staticLayout = StaticLayout.Builder

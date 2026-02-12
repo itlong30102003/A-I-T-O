@@ -5,6 +5,7 @@ import { Settings } from 'react-native-fbsdk-next';
 import SplashScreen from './components/SplashScreen';
 import LoginScreen from './components/ui/LoginScreen';
 import MainScreen from './components/MainScreen';
+import { SettingsProvider } from './modules/settings/SettingsContext';
 
 // Initialize Facebook SDK
 Settings.initializeSDK();
@@ -33,10 +34,12 @@ export default function App() {
   };
 
   return (
-    <SafeAreaProvider>
-      {screen === 'splash' && <SplashScreen onComplete={handleSplashComplete} />}
-      {screen === 'login' && <LoginScreen onLoginSuccess={handleLoginSuccess} />}
-      {screen === 'main' && <MainScreen onLogout={handleLogout} />}
-    </SafeAreaProvider>
+    <SettingsProvider>
+      <SafeAreaProvider>
+        {screen === 'splash' && <SplashScreen onComplete={handleSplashComplete} />}
+        {screen === 'login' && <LoginScreen onLoginSuccess={handleLoginSuccess} />}
+        {screen === 'main' && <MainScreen onLogout={handleLogout} />}
+      </SafeAreaProvider>
+    </SettingsProvider>
   );
 }

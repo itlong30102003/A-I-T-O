@@ -399,6 +399,22 @@ public class OverlayService extends Service {
             if (navbarView != null) navbarView.invalidate();
         });
     }
+    
+    public void setOverlayStyle(String style) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (translationView != null) {
+                translationView.setOverlayStyle(style);
+            }
+        });
+    }
+    
+    public void setOverlayTextSize(float scale) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (translationView != null) {
+                translationView.setTextSizeScale(scale);
+            }
+        });
+    }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

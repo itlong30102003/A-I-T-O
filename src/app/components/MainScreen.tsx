@@ -29,9 +29,12 @@ import { useCaptureState } from '../modules/core/hooks/useCaptureState';
 import { LanguageModal, DeviceInfoSection, ModelLoadingCard } from '../modules/ui';
 
 // Selection module imports
-// Selection module imports
 import SelectionTypeSelector from '../modules/selection/SelectionTypeSelector';
 import HistoryList from '../modules/selection/HistoryList';
+
+// Settings module imports
+import { useSettings } from '../modules/settings/SettingsContext';
+import SettingsScreen from '../modules/settings/SettingsScreen';
 
 // Services (unchanged - preserving business logic)
 import { screenCaptureService } from '../services/ScreenCaptureService';
@@ -54,6 +57,8 @@ interface MainScreenProps {
 const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
     // Hooks
     const { user, logout } = useAuth();
+    const settings = useSettings();
+    const { t, overlayStyle, overlayTextSize, theme } = settings;
     const {
         captureState,
         duration,
@@ -73,6 +78,22 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
     const [showLanguageModal, setShowLanguageModal] = useState<'source' | 'target' | null>(null);
     const [showResultModal, setShowResultModal] = useState(false);
     const [selectedText, setSelectedText] = useState('Nội dung sẽ được dịch ở đây...');
+    const [showSettings, setShowSettings] = useState(false);
+
+    // Theme colors
+    const isDark = theme === 'dark';
+    const colors = useMemo(() => ({
+        bg: isDark ? '#1a1a2e' : '#f5f5f5',
+        card: isDark ? '#16213e' : '#fff',
+        text: isDark ? '#e0e0e0' : '#333',
+        subtext: isDark ? '#a0a0a0' : '#666',
+        border: isDark ? '#2a2a4a' : '#eee',
+        accent: '#4285F4',
+        success: '#34A853',
+        error: '#EA4335',
+        buttonBg: isDark ? '#2a2a4a' : '#f1f3f4',
+        modalBg: isDark ? '#16213e' : '#fff',
+    }), [isDark]);
 
     // Model Loading State
     const [modelLoadingStatus, setModelLoadingStatus] = useState({
@@ -100,9 +121,9 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
             await logout();
             if (onLogout) onLogout();
         } catch (error) {
-            Alert.alert('Lỗi', 'Không thể đăng xuất');
+            Alert.alert(t('main.error'), t('main.logoutError'));
         }
-    }, [logout, onLogout]);
+    }, [logout, onLogout, t]);
 
     // Handle language selection
     const handleLanguageSelect = useCallback((lang: LanguageItem) => {
@@ -210,6 +231,15 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         };
     }, [captureState.isCapturing, translationMode, selectionType, sourceLang, targetLang]);
 
+    // Sync overlay style & text size to native
+    useEffect(() => {
+        overlayService.setOverlayStyle(overlayStyle);
+    }, [overlayStyle]);
+
+    useEffect(() => {
+        overlayService.setOverlayTextSize(overlayTextSize);
+    }, [overlayTextSize]);
+
     // Sync navbar config
     useEffect(() => {
         overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
@@ -237,17 +267,29 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         );
     }
 
-
-
+    // Early return for Settings
+    if (showSettings) {
+        return <SettingsScreen onBack={() => setShowSettings(false)} />;
+    }
     return (
         <View style={{ flex: 1 }}>
-            <ScrollView style={styles.container}>
+            <ScrollView style={[styles.container, { backgroundColor: colors.bg }]}>
                 {/* User Info */}
-                <View style={styles.userSection}>
-                    <Text style={styles.userName}>
-                        {user?.displayName || user?.email || 'Chưa có tên'}
-                    </Text>
-                    <Text style={styles.userEmail}>{user?.email}</Text>
+                <View style={[styles.userSection, { backgroundColor: colors.card }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.userName, { color: colors.text }]}>
+                                {user?.displayName || user?.email || t('main.noName')}
+                            </Text>
+                            <Text style={[styles.userEmail, { color: colors.subtext }]}>{user?.email}</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={[styles.settingsBtn, { backgroundColor: colors.buttonBg }]}
+                            onPress={() => setShowSettings(true)}
+                        >
+                            <Text style={{ fontSize: 20 }}>⚙️</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Device Info - Using extracted component */}
@@ -257,9 +299,9 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                 <ModelLoadingCard status={modelLoadingStatus} />
 
                 {/* Mode Selector */}
-                <View style={styles.modeSection}>
-                    <Text style={styles.sectionTitle}>🛠️ Chế độ dịch</Text>
-                    <View style={styles.modeContainer}>
+                <View style={[styles.modeSection, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('main.translationMode')}</Text>
+                    <View style={[styles.modeContainer, { backgroundColor: colors.buttonBg }]}>
                         {MODES.map((mode) => (
                             <TouchableOpacity
                                 key={mode.id}
@@ -278,7 +320,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                             </TouchableOpacity>
                         ))}
                     </View>
-                    <Text style={styles.modeDescription}>{currentModeDesc}</Text>
+                    <Text style={[styles.modeDescription, { color: colors.subtext }]}>{currentModeDesc}</Text>
 
                     {/* Selection Type - Using extracted component */}
                     {translationMode === 'SELECTION' && (
@@ -293,59 +335,59 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                 </View>
 
                 {/* Language Selector */}
-                <View style={styles.languageSection}>
-                    <Text style={styles.sectionTitle}>🌐 Ngôn ngữ</Text>
+                <View style={[styles.languageSection, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('main.language')}</Text>
                     <View style={styles.languageRow}>
                         <TouchableOpacity
-                            style={styles.languageButton}
+                            style={[styles.languageButton, { backgroundColor: isDark ? '#2a2a4a' : '#f8f9fa', borderColor: colors.border }]}
                             onPress={() => setShowLanguageModal('source')}
                         >
-                            <Text style={styles.languageLabel}>Nguồn</Text>
-                            <Text style={styles.languageValue}>{sourceLang.label}</Text>
+                            <Text style={[styles.languageLabel, { color: colors.subtext }]}>{t('main.source')}</Text>
+                            <Text style={[styles.languageValue, { color: colors.text }]}>{sourceLang.label}</Text>
                         </TouchableOpacity>
 
                         <Text style={styles.arrow}>➡️</Text>
 
                         <TouchableOpacity
-                            style={styles.languageButton}
+                            style={[styles.languageButton, { backgroundColor: isDark ? '#2a2a4a' : '#f8f9fa', borderColor: colors.border }]}
                             onPress={() => setShowLanguageModal('target')}
                         >
-                            <Text style={styles.languageLabel}>Đích</Text>
-                            <Text style={styles.languageValue}>{targetLang.label}</Text>
+                            <Text style={[styles.languageLabel, { color: colors.subtext }]}>{t('main.target')}</Text>
+                            <Text style={[styles.languageValue, { color: colors.text }]}>{targetLang.label}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 {/* Screen Capture Controls - Only for REALTIME mode */}
                 {translationMode === 'REALTIME' && (
-                    <View style={styles.captureSection}>
-                        <Text style={styles.sectionTitle}>🎥 Screen Capture</Text>
+                    <View style={[styles.captureSection, { backgroundColor: colors.card }]}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('main.screenCapture')}</Text>
 
-                        <View style={styles.statusContainer}>
+                        <View style={[styles.statusContainer, { backgroundColor: isDark ? '#1a1a2e' : '#f8f9fa' }]}>
                             <View style={styles.statusRow}>
-                                <Text style={styles.statusLabel}>Nguồn:</Text>
+                                <Text style={[styles.statusLabel, { color: colors.subtext }]}>{t('main.captureSource')}</Text>
                                 <Text style={[
                                     styles.statusValue,
                                     permissionGranted ? styles.statusSuccess : styles.statusError
                                 ]}>
-                                    {permissionGranted ? '✅ Đã chọn' : '❌ Chưa chọn'}
+                                    {permissionGranted ? t('main.selected') : t('main.notSelected')}
                                 </Text>
                             </View>
                             <View style={styles.statusRow}>
-                                <Text style={styles.statusLabel}>Trạng thái:</Text>
+                                <Text style={[styles.statusLabel, { color: colors.subtext }]}>{t('main.captureStatus')}</Text>
                                 <View style={styles.statusValueContainer}>
                                     {isCapturing && <View style={styles.pulsingDot} />}
                                     <Text style={[
                                         styles.statusValue,
                                         isCapturing ? styles.statusSuccess : styles.statusError
                                     ]}>
-                                        {isCapturing ? 'Đang capture' : 'Đã dừng'}
+                                        {isCapturing ? t('main.capturing') : t('main.stopped')}
                                     </Text>
                                 </View>
                             </View>
                             {isCapturing && (
                                 <View style={styles.statusRow}>
-                                    <Text style={styles.statusLabel}>Thời gian:</Text>
+                                    <Text style={[styles.statusLabel, { color: colors.subtext }]}>{t('main.captureTime')}</Text>
                                     <Text style={styles.statusValue}>⏱️ {duration}</Text>
                                 </View>
                             )}
@@ -358,8 +400,8 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                             >
                                 <Text style={styles.buttonText}>
                                     {androidInfo?.supportsAppSelection
-                                        ? '🎯 Chọn App để Capture'
-                                        : '📺 Cấp quyền Capture'}
+                                        ? t('main.selectApp')
+                                        : t('main.grantPermission')}
                                 </Text>
                             </TouchableOpacity>
                         )}
@@ -372,7 +414,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                                         onPress={handleStartCapture}
                                         disabled={isCapturing}
                                     >
-                                        <Text style={styles.buttonText}>▶️ Bắt đầu</Text>
+                                        <Text style={styles.buttonText}>{t('main.start')}</Text>
                                     </TouchableOpacity>
 
                                     <TouchableOpacity
@@ -380,7 +422,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                                         onPress={handleStopCapture}
                                         disabled={!isCapturing}
                                     >
-                                        <Text style={styles.buttonText}>⏹️ Dừng</Text>
+                                        <Text style={styles.buttonText}>{t('main.stop')}</Text>
                                     </TouchableOpacity>
                                 </View>
 
@@ -390,7 +432,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                                         onPress={handleChangeApp}
                                     >
                                         <Text style={styles.buttonChangeAppText}>
-                                            🔄 Đổi App Capture
+                                            {t('main.changeApp')}
                                         </Text>
                                     </TouchableOpacity>
                                 )}
@@ -401,7 +443,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
 
                 {/* Logout Button */}
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Text style={styles.logoutText}>🚪 Đăng xuất</Text>
+                    <Text style={styles.logoutText}>{t('main.logout')}</Text>
                 </TouchableOpacity>
             </ScrollView>
 
@@ -431,14 +473,14 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                         <View style={styles.resultHeader}>
                             <Text style={styles.resultTitle}>📝 Bản dịch</Text>
                             <TouchableOpacity onPress={() => setShowResultModal(false)}>
-                                <Text style={styles.closeIcon}>✕</Text>
+                                <Text style={[styles.closeIcon, { color: isDark ? '#aaa' : '#999' }]}>✕</Text>
                             </TouchableOpacity>
                         </View>
                         <ScrollView style={styles.resultContent}>
                             <Text style={styles.translatedTextContent}>{selectedText}</Text>
                         </ScrollView>
                         <View style={styles.resultFooter}>
-                            <Text style={styles.resultMeta}>💡 Model: ML Kit (Local)</Text>
+                            <Text style={[styles.resultMeta, { color: colors.subtext }]}>{t('main.model')}</Text>
                         </View>
                     </View>
                 </TouchableOpacity>
@@ -507,6 +549,7 @@ const styles = StyleSheet.create({
     modeSectionHeader: { position: 'absolute', top: 16, left: 16 },
     backButton: { backgroundColor: 'rgba(255,255,255,0.9)', padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#eee' },
     backButtonText: { fontSize: 14, fontWeight: 'bold', color: '#4285F4' },
+    settingsBtn: { padding: 8, borderRadius: 8 },
 });
 
 export default MainScreen;

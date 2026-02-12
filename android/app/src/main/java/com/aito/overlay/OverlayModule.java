@@ -139,6 +139,16 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     }
 
     @ReactMethod
+    public void setOverlayStyle(String style) {
+        if (OverlayService.instance != null) OverlayService.instance.setOverlayStyle(style);
+    }
+
+    @ReactMethod
+    public void setOverlayTextSize(double scale) {
+        if (OverlayService.instance != null) OverlayService.instance.setOverlayTextSize((float) scale);
+    }
+
+    @ReactMethod
     public void stopOverlay() {
         Intent intent = new Intent(getReactApplicationContext(), OverlayService.class);
         getReactApplicationContext().stopService(intent);

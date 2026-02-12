@@ -155,6 +155,22 @@ class OverlayService {
     }
 
     /**
+     * Set overlay font style (dark = black bg white text, light = white bg black text).
+     */
+    setOverlayStyle(style: 'dark' | 'light'): void {
+        if (!this.isSupported) return;
+        OverlayModule.setOverlayStyle(style);
+    }
+
+    /**
+     * Set overlay text size scale factor.
+     */
+    setOverlayTextSize(scale: number): void {
+        if (!this.isSupported) return;
+        OverlayModule.setOverlayTextSize(scale);
+    }
+
+    /**
      * Update overlay with translated blocks.
      */
     updateOverlay(blocks: any[]): void {
