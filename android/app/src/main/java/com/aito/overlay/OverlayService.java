@@ -60,6 +60,7 @@ public class OverlayService extends Service {
     private String currentMode = "REALTIME";
     private String sourceLanguage = "Auto";
     private String targetLanguage = "VN";
+    private boolean isAutoMode = true;
     private Bitmap logoBitmap;
     
     // Static reference for communication
@@ -77,6 +78,9 @@ public class OverlayService extends Service {
     public interface OnNavbarEventListener {
         void onSourceLangClick();
         void onTargetLangClick();
+        void onTranslateClick();
+        void onAutoModeClick();
+        void onCloseClick();
     }
 
     public void setOnLogoClickListener(OnLogoClickListener listener) {
@@ -164,13 +168,16 @@ public class OverlayService extends Service {
         int navbarWidth = screenWidth - (navbarHorizontalMarginPx * 2);
         
         navbarView = new View(this) {
+            private RectF closeBtn = new RectF();
             private RectF sourceLangBtn = new RectF();
             private RectF targetLangBtn = new RectF();
+            private RectF autoModeBtn = new RectF();
+            private RectF translateBtn = new RectF();
             
             @Override
             protected void onDraw(Canvas canvas) {
                 super.onDraw(canvas);
-                drawNavbar(canvas, getWidth(), getHeight(), sourceLangBtn, targetLangBtn);
+                drawNavbar(canvas, getWidth(), getHeight(), closeBtn, sourceLangBtn, targetLangBtn, autoModeBtn, translateBtn);
             }
             
             @Override
@@ -179,12 +186,26 @@ public class OverlayService extends Service {
                     float x = event.getX();
                     float y = event.getY();
                     
+                    if (closeBtn.contains(x, y)) {
+                        if (jsNavbarListener != null) jsNavbarListener.onCloseClick();
+                        return true;
+                    }
                     if (sourceLangBtn.contains(x, y)) {
                         if (jsNavbarListener != null) jsNavbarListener.onSourceLangClick();
                         return true;
                     }
                     if (targetLangBtn.contains(x, y)) {
                         if (jsNavbarListener != null) jsNavbarListener.onTargetLangClick();
+                        return true;
+                    }
+                    if (autoModeBtn.contains(x, y)) {
+                        isAutoMode = !isAutoMode;
+                        invalidate();
+                        if (jsNavbarListener != null) jsNavbarListener.onAutoModeClick();
+                        return true;
+                    }
+                    if (translateBtn.contains(x, y)) {
+                        if (jsNavbarListener != null) jsNavbarListener.onTranslateClick();
                         return true;
                     }
                 }
@@ -204,8 +225,8 @@ public class OverlayService extends Service {
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT);
 
-        navbarParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-        navbarParams.y = navbarTopMarginPx;
+        navbarParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+        navbarParams.y = (int) (24 * getResources().getDisplayMetrics().density);
     }
     
     private void createTranslationView() {
@@ -294,38 +315,95 @@ public class OverlayService extends Service {
         }
     }
     
-    private void drawNavbar(Canvas canvas, int width, int height, RectF sourceLangBtn, RectF targetLangBtn) {
+    private void drawNavbar(Canvas canvas, int width, int height, RectF closeBtn, RectF sourceLangBtn, RectF targetLangBtn, RectF autoModeBtn, RectF translateBtn) {
         float density = getResources().getDisplayMetrics().density;
         float cornerRadius = height / 2f;
         
+        // Background
         Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         bgPaint.setColor(Color.WHITE);
         bgPaint.setShadowLayer(8 * density, 0, 2 * density, Color.argb(40, 0, 0, 0));
         canvas.drawRoundRect(0, 0, width, height, cornerRadius, cornerRadius, bgPaint);
         
         TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        textPaint.setColor(Color.parseColor("#333333"));
-        textPaint.setTextSize(13 * density);
+        textPaint.setTextSize(12 * density);
         textPaint.setFakeBoldText(true);
         
         float centerY = height / 2f;
         Paint.FontMetrics fm = textPaint.getFontMetrics();
         float textY = centerY - (fm.ascent + fm.descent) / 2;
         
-        canvas.drawText(getModeIcon(currentMode) + " " + currentMode, 16 * density, textY, textPaint);
-        
-        float sectionWidth = width / 3f;
-        float btnHeight = height - 16 * density;
+        float btnHeight = height - 12 * density;
         float btnY = (height - btnHeight) / 2f;
+        float btnRadius = btnHeight / 2f;
+        float gap = 4 * density;
         
+        Paint btnPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        btnPaint.setStyle(Paint.Style.FILL);
+        
+        // Layout: [X:10%] [Src:22%] [Tgt:22%] [Auto:23%] [Dịch:23%]
+        float closeW = width * 0.10f;
+        float srcW = width * 0.22f;
+        float tgtW = width * 0.22f;
+        float autoW = width * 0.23f;
+        float transW = width * 0.23f;
+        
+        float x = 0;
+        
+        // 1. Close button (✕)
+        closeBtn.set(x + gap, btnY, x + closeW - gap, btnY + btnHeight);
+        btnPaint.setColor(Color.parseColor("#FFEBEE"));
+        canvas.drawRoundRect(closeBtn, btnRadius, btnRadius, btnPaint);
+        textPaint.setColor(Color.parseColor("#D32F2F"));
+        float closeTextW = textPaint.measureText("✕");
+        canvas.drawText("✕", closeBtn.centerX() - closeTextW / 2, textY, textPaint);
+        x += closeW;
+        
+        // 2. Source language
+        sourceLangBtn.set(x + gap, btnY, x + srcW - gap, btnY + btnHeight);
+        btnPaint.setColor(Color.parseColor("#F0F4FF"));
+        canvas.drawRoundRect(sourceLangBtn, btnRadius, btnRadius, btnPaint);
         textPaint.setColor(Color.parseColor("#4285F4"));
-        sourceLangBtn.set(sectionWidth, btnY, sectionWidth * 2 - 8 * density, btnY + btnHeight);
-        float srcWidth = textPaint.measureText("🌐 " + sourceLanguage);
-        canvas.drawText("🌐 " + sourceLanguage, sourceLangBtn.centerX() - srcWidth / 2, textY, textPaint);
+        String srcText = sourceLanguage;
+        float srcTextW = textPaint.measureText(srcText);
+        canvas.drawText(srcText, sourceLangBtn.centerX() - srcTextW / 2, textY, textPaint);
+        x += srcW;
         
-        targetLangBtn.set(sectionWidth * 2 + 8 * density, btnY, width - 12 * density, btnY + btnHeight);
-        float tgtWidth = textPaint.measureText("🎯 " + targetLanguage);
-        canvas.drawText("🎯 " + targetLanguage, targetLangBtn.centerX() - tgtWidth / 2, textY, textPaint);
+        // 3. Target language
+        targetLangBtn.set(x + gap, btnY, x + tgtW - gap, btnY + btnHeight);
+        canvas.drawRoundRect(targetLangBtn, btnRadius, btnRadius, btnPaint);
+        String tgtText = targetLanguage;
+        float tgtTextW = textPaint.measureText(tgtText);
+        canvas.drawText(tgtText, targetLangBtn.centerX() - tgtTextW / 2, textY, textPaint);
+        x += tgtW;
+        
+        // 4. Auto/Manual toggle
+        autoModeBtn.set(x + gap, btnY, x + autoW - gap, btnY + btnHeight);
+        if (isAutoMode) {
+            btnPaint.setColor(Color.parseColor("#E8F5E9"));
+            canvas.drawRoundRect(autoModeBtn, btnRadius, btnRadius, btnPaint);
+            textPaint.setColor(Color.parseColor("#2E7D32"));
+            String autoText = "⚡Auto";
+            float autoTextW = textPaint.measureText(autoText);
+            canvas.drawText(autoText, autoModeBtn.centerX() - autoTextW / 2, textY, textPaint);
+        } else {
+            btnPaint.setColor(Color.parseColor("#FFF3E0"));
+            canvas.drawRoundRect(autoModeBtn, btnRadius, btnRadius, btnPaint);
+            textPaint.setColor(Color.parseColor("#E65100"));
+            String manualText = "✋Manual";
+            float manualTextW = textPaint.measureText(manualText);
+            canvas.drawText(manualText, autoModeBtn.centerX() - manualTextW / 2, textY, textPaint);
+        }
+        x += autoW;
+        
+        // 5. Translate button
+        translateBtn.set(x + gap, btnY, x + transW - gap, btnY + btnHeight);
+        btnPaint.setColor(Color.parseColor("#4285F4"));
+        canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
+        textPaint.setColor(Color.WHITE);
+        String transText = "Dịch";
+        float transTextW = textPaint.measureText(transText);
+        canvas.drawText(transText, translateBtn.centerX() - transTextW / 2, textY, textPaint);
     }
     
     private String getModeIcon(String mode) {
@@ -396,6 +474,13 @@ public class OverlayService extends Service {
             this.currentMode = mode != null ? mode : "REALTIME";
             this.sourceLanguage = sourceLang != null ? sourceLang : "Auto";
             this.targetLanguage = targetLang != null ? targetLang : "VN";
+            if (navbarView != null) navbarView.invalidate();
+        });
+    }
+    
+    public void setAutoMode(boolean auto) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            this.isAutoMode = auto;
             if (navbarView != null) navbarView.invalidate();
         });
     }

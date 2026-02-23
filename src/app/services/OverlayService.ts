@@ -155,6 +155,33 @@ class OverlayService {
     }
 
     /**
+     * Subscribe to translate button click.
+     */
+    onTranslateClick(callback: () => void): () => void {
+        if (!this.isSupported || !this.emitter) return () => { };
+        const subscription = this.emitter.addListener('onNavbarTranslateClick', callback);
+        return () => subscription.remove();
+    }
+
+    /**
+     * Subscribe to auto mode toggle click.
+     */
+    onAutoModeClick(callback: () => void): () => void {
+        if (!this.isSupported || !this.emitter) return () => { };
+        const subscription = this.emitter.addListener('onNavbarAutoModeClick', callback);
+        return () => subscription.remove();
+    }
+
+    /**
+     * Subscribe to close button click.
+     */
+    onCloseClick(callback: () => void): () => void {
+        if (!this.isSupported || !this.emitter) return () => { };
+        const subscription = this.emitter.addListener('onNavbarCloseClick', callback);
+        return () => subscription.remove();
+    }
+
+    /**
      * Set overlay font style (dark = black bg white text, light = white bg black text).
      */
     setOverlayStyle(style: 'dark' | 'light'): void {
@@ -175,9 +202,7 @@ class OverlayService {
      */
     updateOverlay(blocks: any[]): void {
         if (!this.isSupported) return;
-        console.log(`OverlayService: updateOverlay called with ${blocks.length} blocks`);
         const json = JSON.stringify(blocks);
-        console.log(`OverlayService: Sending JSON to native (${json.length} chars)`);
         this.start(json);
     }
 

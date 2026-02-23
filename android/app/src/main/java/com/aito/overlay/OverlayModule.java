@@ -93,6 +93,21 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
             public void onTargetLangClick() {
                 emitEvent("onNavbarTargetLangClick", null);
             }
+            
+            @Override
+            public void onTranslateClick() {
+                emitEvent("onNavbarTranslateClick", null);
+            }
+            
+            @Override
+            public void onAutoModeClick() {
+                emitEvent("onNavbarAutoModeClick", null);
+            }
+            
+            @Override
+            public void onCloseClick() {
+                emitEvent("onNavbarCloseClick", null);
+            }
         });
     }
     

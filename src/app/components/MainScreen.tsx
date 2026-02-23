@@ -153,12 +153,35 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
             setShowLanguageModal('target');
         });
 
+        const unsubsTranslate = overlayService.onTranslateClick(() => {
+            console.log('MainScreen: Translate button clicked');
+            realtimePipelineService.triggerManualTranslate();
+        });
+
+        const unsubsAutoMode = overlayService.onAutoModeClick(() => {
+            const newMode = !realtimePipelineService.getAutoMode();
+            console.log('MainScreen: AutoMode toggled to', newMode ? 'AUTO' : 'MANUAL');
+            realtimePipelineService.setAutoMode(newMode);
+        });
+
+        const unsubsClose = overlayService.onCloseClick(() => {
+            console.log('MainScreen: Close button clicked - stopping everything');
+            realtimePipelineService.stop();
+            selectionPipelineService.stop();
+            ocrPipelineService.stop();
+            overlayService.stop();
+            handleStopCapture();
+        });
+
         return () => {
             unsubsLogo();
             unsubsSourceLang();
             unsubsTargetLang();
+            unsubsTranslate();
+            unsubsAutoMode();
+            unsubsClose();
         };
-    }, [translationMode]);
+    }, [translationMode, handleStopCapture]);
 
     // Auto-start Selection Mode
     useEffect(() => {
@@ -200,16 +223,20 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
             const script = ['zh', 'ja', 'ko'].includes(sourceLang.code) ? 'chinese' : 'latin';
 
             await overlayService.start('[]');
-            overlayService.showLogo();
-            overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
 
             if (translationMode === 'REALTIME') {
+                // Show navbar immediately for realtime mode
+                overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
+                overlayService.showLogo();
+                overlayService.toggleNavbar();
                 realtimePipelineService.start({
                     script,
                     sourceLanguage: sourceLang.code,
                     targetLanguage: targetLang.code,
                 });
             } else if (translationMode === 'SELECTION') {
+                overlayService.showLogo();
+                overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
                 selectionPipelineService.start(selectionType, {
                     sourceLanguage: sourceLang.code,
                     targetLanguage: targetLang.code,

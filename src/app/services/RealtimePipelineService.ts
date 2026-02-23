@@ -1,5 +1,12 @@
 /**
- * RealtimePipelineService - Simple Pipeline for Capture → OCR → Translate → Overlay
+ * RealtimePipelineService - Optimized Pipeline for Capture → OCR → Translate → Overlay
+ * 
+ * Features:
+ * - Auto/Manual mode toggle
+ * - Debounce (500ms) to wait for stable frame
+ * - Text similarity cache to skip re-translation
+ * - Translation result cache by text hash
+ * - Hide overlay immediately on frame change, show when translation done
  */
 
 import { FrameData } from './ScreenCaptureService';
@@ -24,13 +31,29 @@ class RealtimePipelineService {
     private status: PipelineStatus = 'idle';
     private nativeSubscription: any = null;
     private isProcessing = false;
-    private currentFrameId = 0;  // Track which frame we're processing
-    private pendingFrame: FrameData | null = null;  // Store latest frame if busy
+    private currentFrameId = 0;
+
+    // Auto/Manual mode
+    private isAutoMode = true;
+    private debounceTimer: any = null;
+    private static readonly DEBOUNCE_MS = 500;
+
+    // Text cache — skip re-translate if text unchanged
+    private lastOcrText = '';
+    private lastTranslatedBlocks: any[] = [];
+
+    // Translation cache — hash → translated blocks
+    private translationCache = new Map<string, any[]>();
+    private static readonly MAX_CACHE_SIZE = 20;
+
+    // Latest frame for manual translate
+    private latestFrame: FrameData | null = null;
 
     private stats = {
         framesReceived: 0,
         ocrCompleted: 0,
         translationsCompleted: 0,
+        cacheHits: 0,
     };
 
     start(config: PipelineConfig): void {
@@ -44,8 +67,11 @@ class RealtimePipelineService {
         this.status = 'running';
         this.isProcessing = false;
         this.currentFrameId = 0;
-        this.pendingFrame = null;
-        this.stats = { framesReceived: 0, ocrCompleted: 0, translationsCompleted: 0 };
+        this.latestFrame = null;
+        this.lastOcrText = '';
+        this.lastTranslatedBlocks = [];
+        this.translationCache.clear();
+        this.stats = { framesReceived: 0, ocrCompleted: 0, translationsCompleted: 0, cacheHits: 0 };
 
         const { ScreenCaptureModule } = require('react-native').NativeModules;
         const { NativeEventEmitter } = require('react-native');
@@ -59,7 +85,7 @@ class RealtimePipelineService {
             });
         });
 
-        console.log('[PIPELINE] ▶️ Started');
+        console.log('[PIPELINE] ▶️ Started (mode: ' + (this.isAutoMode ? 'AUTO' : 'MANUAL') + ')');
     }
 
     stop(): void {
@@ -68,33 +94,87 @@ class RealtimePipelineService {
             this.nativeSubscription.remove();
             this.nativeSubscription = null;
         }
-        this.pendingFrame = null;
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = null;
+        }
+        this.latestFrame = null;
+        overlayService.hideTranslation();
         overlayService.stop();
         console.log('[PIPELINE] ⏹️ Stopped');
+    }
+
+    setAutoMode(auto: boolean): void {
+        this.isAutoMode = auto;
+        console.log(`[PIPELINE] Mode: ${auto ? '⚡ AUTO' : '✋ MANUAL'}`);
+
+        // If switching to auto and we have a frame, start debounce
+        if (auto && this.latestFrame && this.status === 'running') {
+            this.startDebounce(this.latestFrame);
+        }
+    }
+
+    getAutoMode(): boolean {
+        return this.isAutoMode;
+    }
+
+    /**
+     * Manual translate trigger — called when user presses "Dịch" button
+     */
+    triggerManualTranslate(): void {
+        if (this.status !== 'running') return;
+        if (!this.latestFrame) {
+            console.log('[PIPELINE] ⚠️ No frame available for manual translate');
+            return;
+        }
+        if (this.isProcessing) {
+            console.log('[PIPELINE] ⏳ Already processing, please wait');
+            return;
+        }
+
+        console.log('[PIPELINE] 🔘 Manual translate triggered');
+        this.currentFrameId++;
+        this.processFrame(this.latestFrame, this.currentFrameId);
     }
 
     private handleFrame = (frame: FrameData): void => {
         if (this.status !== 'running') return;
 
-        // Increment frame ID - this invalidates any in-progress processing
         this.currentFrameId++;
-        const thisFrameId = this.currentFrameId;
-
         this.stats.framesReceived++;
-        console.log(`[PIPELINE] 📥 Frame #${this.stats.framesReceived} (ID: ${thisFrameId})`);
+        this.latestFrame = frame;
 
-        // Clear overlay immediately - screen has changed
-        overlayService.updateOverlay([]);
+        // Hide overlay immediately — screen has changed
+        overlayService.hideTranslation();
 
-        // If already processing, save this frame for later
-        if (this.isProcessing) {
-            console.log(`[PIPELINE] ⏳ Busy, queuing frame for after current completes`);
-            this.pendingFrame = frame;
-            return;
+        // Cancel any pending debounce
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = null;
         }
 
-        this.processFrame(frame, thisFrameId);
+        // In auto mode, start debounce to wait for stable frame
+        if (this.isAutoMode) {
+            this.startDebounce(frame);
+        }
+        // In manual mode, do nothing — wait for user to press "Dịch"
     };
+
+    private startDebounce(frame: FrameData): void {
+        const frameId = this.currentFrameId;
+
+        this.debounceTimer = setTimeout(() => {
+            this.debounceTimer = null;
+
+            // Verify frame is still current
+            if (frameId !== this.currentFrameId) return;
+            if (this.status !== 'running') return;
+            if (this.isProcessing) return;
+
+            console.log(`[PIPELINE] ⏰ Debounce complete, processing frame`);
+            this.processFrame(frame, frameId);
+        }, RealtimePipelineService.DEBOUNCE_MS);
+    }
 
     private async processFrame(frame: FrameData, frameId: number): Promise<void> {
         this.isProcessing = true;
@@ -102,18 +182,15 @@ class RealtimePipelineService {
 
         try {
             // OCR
-            console.log(`[PIPELINE] 🔍 OCR START (Frame ID: ${frameId})`);
             const ocrStart = Date.now();
             const blocks = await textDetectionService.detectText(frame.path, this.config.script);
-            console.log(`[PIPELINE] 🔍 OCR DONE | ${blocks?.length || 0} blocks | ${Date.now() - ocrStart}ms`);
+            console.log(`[PIPELINE] 🔍 OCR: ${blocks?.length || 0} blocks | ${Date.now() - ocrStart}ms`);
 
-            // Check if this frame is still current
-            if (frameId !== this.currentFrameId) {
-                console.log(`[PIPELINE] ⏭️ Frame ${frameId} outdated (current: ${this.currentFrameId}), discarding`);
+            if (frameId !== this.currentFrameId || this.status !== 'running') {
+                console.log(`[PIPELINE] ⏭️ Frame outdated, discarding`);
                 return;
             }
 
-            if (this.status !== 'running') return;
             this.stats.ocrCompleted++;
 
             if (!blocks || blocks.length === 0) {
@@ -121,29 +198,50 @@ class RealtimePipelineService {
                 return;
             }
 
-            // Log detected text
-            console.log(`[PIPELINE] 📝 Detected:`);
-            blocks.slice(0, 3).forEach((b, i) => console.log(`   [${i}] "${b.text.substring(0, 50)}"`));
+            // Build text hash for cache comparison
+            const currentText = blocks.map(b => b.text).join('\n');
+            const textHash = this.simpleHash(currentText);
 
-            // Translate
-            console.log(`[PIPELINE] 🌐 TRANSLATE START`);
+            // Check if text is same as last translated
+            if (currentText === this.lastOcrText && this.lastTranslatedBlocks.length > 0) {
+                console.log(`[PIPELINE] ♻️ Text unchanged, showing cached overlay`);
+                this.stats.cacheHits++;
+                overlayService.updateOverlay(this.lastTranslatedBlocks);
+                overlayService.showTranslation();
+                console.log(`[PIPELINE] ✅ Cache hit | Total: ${Date.now() - startTime}ms`);
+                return;
+            }
+
+            // Check translation cache by hash
+            const cachedResult = this.translationCache.get(textHash);
+            if (cachedResult) {
+                console.log(`[PIPELINE] 💾 Translation cache hit`);
+                this.stats.cacheHits++;
+                this.lastOcrText = currentText;
+                this.lastTranslatedBlocks = cachedResult;
+                overlayService.updateOverlay(cachedResult);
+                overlayService.showTranslation();
+                console.log(`[PIPELINE] ✅ Hash cache hit | Total: ${Date.now() - startTime}ms`);
+                return;
+            }
+
+            // Translate — bypass queue, call directly for realtime speed
             const transStart = Date.now();
-            const response = await TranslationManager.translate({
+            const response = await TranslationManager.executeTranslation({
                 items: blocks.map((b, i) => ({ id: `${i}`, text: b.text })),
                 sourceLanguage: this.config.sourceLanguage === 'auto' ? undefined : this.config.sourceLanguage,
                 targetLanguage: this.config.targetLanguage,
                 strategy: 'MLKIT',
                 saveHistory: false,
             });
-            console.log(`[PIPELINE] 🌐 TRANSLATE DONE | ${response.results?.length || 0} results | ${Date.now() - transStart}ms`);
+            console.log(`[PIPELINE] 🌐 Translate: ${response.results?.length || 0} results | ${Date.now() - transStart}ms`);
 
-            // Check AGAIN if this frame is still current after translation
-            if (frameId !== this.currentFrameId) {
-                console.log(`[PIPELINE] ⏭️ Frame ${frameId} outdated after translate (current: ${this.currentFrameId}), discarding`);
+            // Check again if frame is still current
+            if (frameId !== this.currentFrameId || this.status !== 'running') {
+                console.log(`[PIPELINE] ⏭️ Frame outdated after translate, discarding`);
                 return;
             }
 
-            if (this.status !== 'running') return;
             this.stats.translationsCompleted++;
 
             // Build translated blocks
@@ -152,25 +250,36 @@ class RealtimePipelineService {
                 return { ...block, text: translation ? translation.t : block.text };
             });
 
-            // Update overlay
-            console.log(`[PIPELINE] 📤 OVERLAY UPDATE (Frame ID: ${frameId})`);
-            translatedBlocks.slice(0, 2).forEach((b, i) => console.log(`   [${i}] "${b.text.substring(0, 50)}"`));
-            overlayService.updateOverlay(translatedBlocks);
+            // Cache results
+            this.lastOcrText = currentText;
+            this.lastTranslatedBlocks = translatedBlocks;
+            this.translationCache.set(textHash, translatedBlocks);
 
-            console.log(`[PIPELINE] ✅ COMPLETE | Total: ${Date.now() - startTime}ms`);
+            // Evict oldest cache entries
+            if (this.translationCache.size > RealtimePipelineService.MAX_CACHE_SIZE) {
+                const firstKey = this.translationCache.keys().next().value;
+                if (firstKey) this.translationCache.delete(firstKey);
+            }
+
+            // Show overlay
+            overlayService.updateOverlay(translatedBlocks);
+            overlayService.showTranslation();
+            console.log(`[PIPELINE] ✅ COMPLETE | Total: ${Date.now() - startTime}ms | Stats: ${JSON.stringify(this.stats)}`);
         } catch (error) {
             console.error(`[PIPELINE] ❌ ERROR:`, error);
         } finally {
             this.isProcessing = false;
-
-            // Check if there's a pending frame to process
-            if (this.pendingFrame && this.status === 'running') {
-                const nextFrame = this.pendingFrame;
-                this.pendingFrame = null;
-                console.log(`[PIPELINE] 🔄 Processing pending frame`);
-                this.processFrame(nextFrame, this.currentFrameId);
-            }
         }
+    }
+
+    private simpleHash(text: string): string {
+        let hash = 0;
+        for (let i = 0; i < text.length; i++) {
+            const char = text.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash |= 0;
+        }
+        return hash.toString(36);
     }
 }
 
