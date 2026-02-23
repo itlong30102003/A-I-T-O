@@ -59,6 +59,26 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
         }
     }
 
+    /**
+     * Run a task when OverlayService.instance is ready.
+     * Polls every 100ms, up to 2 seconds.
+     */
+    private void runWhenServiceReady(Runnable task) {
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(new Runnable() {
+            int attempts = 0;
+            @Override
+            public void run() {
+                if (OverlayService.instance != null) {
+                    task.run();
+                } else if (attempts < 20) {
+                    attempts++;
+                    handler.postDelayed(this, 100);
+                }
+            }
+        });
+    }
+
     @ReactMethod
     public void startOverlay(String text) {
         OverlayService.pendingBlocksJson = text;
@@ -70,12 +90,12 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
             getReactApplicationContext().startService(intent);
         }
 
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+        runWhenServiceReady(() -> {
             setupServiceListeners();
-            if (OverlayService.instance != null && text != null && !text.isEmpty()) {
+            if (text != null && !text.isEmpty()) {
                 OverlayService.instance.updateTranslationBlocks(text);
             }
-        }, 500);
+        });
     }
     
     private void setupServiceListeners() {
@@ -123,24 +143,27 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
 
     @ReactMethod
     public void showLogo() {
-        if (OverlayService.instance != null) OverlayService.instance.showLogo();
+        runWhenServiceReady(() -> OverlayService.instance.showLogo());
     }
 
     @ReactMethod
     public void hideLogo() {
-        if (OverlayService.instance != null) OverlayService.instance.hideLogo();
+        runWhenServiceReady(() -> OverlayService.instance.hideLogo());
     }
     
     @ReactMethod
     public void toggleNavbar() {
-        if (OverlayService.instance != null) OverlayService.instance.toggleNavbar();
+        runWhenServiceReady(() -> OverlayService.instance.toggleNavbar());
     }
     
     @ReactMethod
     public void setNavbarConfig(String mode, String sourceLang, String targetLang) {
-        if (OverlayService.instance != null) {
-            OverlayService.instance.setNavbarConfig(mode, sourceLang, targetLang);
-        }
+        runWhenServiceReady(() -> OverlayService.instance.setNavbarConfig(mode, sourceLang, targetLang));
+    }
+
+    @ReactMethod
+    public void setTranslating(boolean translating) {
+        runWhenServiceReady(() -> OverlayService.instance.setTranslating(translating));
     }
     
     @ReactMethod

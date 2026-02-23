@@ -79,6 +79,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
     const [showResultModal, setShowResultModal] = useState(false);
     const [selectedText, setSelectedText] = useState('Nội dung sẽ được dịch ở đây...');
     const [showSettings, setShowSettings] = useState(false);
+    const [isRealtimeActive, setIsRealtimeActive] = useState(false);
 
     // Theme colors
     const isDark = theme === 'dark';
@@ -154,18 +155,35 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         });
 
         const unsubsTranslate = overlayService.onTranslateClick(() => {
-            console.log('MainScreen: Translate button clicked');
-            realtimePipelineService.triggerManualTranslate();
+            const isAuto = realtimePipelineService.getAutoMode();
+            if (isAuto) {
+                // Auto mode: toggle Start/Stop via React state
+                setIsRealtimeActive(prev => {
+                    const next = !prev;
+                    console.log(`MainScreen: ${next ? 'Start' : 'Stop'} auto translation`);
+                    overlayService.setTranslating(next);
+                    return next;
+                });
+            } else {
+                // Manual mode: trigger one-shot translate
+                console.log('MainScreen: Manual translate triggered');
+                realtimePipelineService.triggerManualTranslate();
+            }
         });
 
         const unsubsAutoMode = overlayService.onAutoModeClick(() => {
             const newMode = !realtimePipelineService.getAutoMode();
             console.log('MainScreen: AutoMode toggled to', newMode ? 'AUTO' : 'MANUAL');
             realtimePipelineService.setAutoMode(newMode);
+            // Reset: pause pipeline and show Start button
+            setIsRealtimeActive(false);
+            realtimePipelineService.pause();
+            overlayService.setTranslating(false);
         });
 
         const unsubsClose = overlayService.onCloseClick(() => {
             console.log('MainScreen: Close button clicked - stopping everything');
+            setIsRealtimeActive(false);
             realtimePipelineService.stop();
             selectionPipelineService.stop();
             ocrPipelineService.stop();
@@ -225,15 +243,24 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
             await overlayService.start('[]');
 
             if (translationMode === 'REALTIME') {
-                // Show navbar immediately for realtime mode
+                // Show navbar immediately — native side queues until service ready
                 overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
                 overlayService.showLogo();
                 overlayService.toggleNavbar();
-                realtimePipelineService.start({
-                    script,
-                    sourceLanguage: sourceLang.code,
-                    targetLanguage: targetLang.code,
-                });
+
+                if (isRealtimeActive) {
+                    // User pressed Start — run the pipeline
+                    overlayService.setTranslating(true);
+                    realtimePipelineService.start({
+                        script,
+                        sourceLanguage: sourceLang.code,
+                        targetLanguage: targetLang.code,
+                    });
+                } else {
+                    // Show Start button, pause pipeline if it was running
+                    realtimePipelineService.pause();
+                    overlayService.setTranslating(false);
+                }
             } else if (translationMode === 'SELECTION') {
                 overlayService.showLogo();
                 overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
@@ -256,7 +283,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                 ocrPipelineService.stop();
             }
         };
-    }, [captureState.isCapturing, translationMode, selectionType, sourceLang, targetLang]);
+    }, [captureState.isCapturing, translationMode, selectionType, sourceLang, targetLang, isRealtimeActive]);
 
     // Sync overlay style & text size to native
     useEffect(() => {

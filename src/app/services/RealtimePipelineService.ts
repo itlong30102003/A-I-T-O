@@ -104,6 +104,25 @@ class RealtimePipelineService {
         console.log('[PIPELINE] ⏹️ Stopped');
     }
 
+    /**
+     * Pause pipeline — stops frame processing but keeps overlay/navbar alive.
+     * Used by navbar Stop button to pause without destroying UI.
+     */
+    pause(): void {
+        this.status = 'idle';
+        if (this.nativeSubscription) {
+            this.nativeSubscription.remove();
+            this.nativeSubscription = null;
+        }
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = null;
+        }
+        this.latestFrame = null;
+        overlayService.hideTranslation();
+        console.log('[PIPELINE] ⏸️ Paused (navbar stays)');
+    }
+
     setAutoMode(auto: boolean): void {
         this.isAutoMode = auto;
         console.log(`[PIPELINE] Mode: ${auto ? '⚡ AUTO' : '✋ MANUAL'}`);
@@ -116,6 +135,10 @@ class RealtimePipelineService {
 
     getAutoMode(): boolean {
         return this.isAutoMode;
+    }
+
+    getStatus(): PipelineStatus {
+        return this.status;
     }
 
     /**

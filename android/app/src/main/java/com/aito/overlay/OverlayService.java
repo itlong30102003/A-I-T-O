@@ -61,6 +61,7 @@ public class OverlayService extends Service {
     private String sourceLanguage = "Auto";
     private String targetLanguage = "VN";
     private boolean isAutoMode = true;
+    private boolean isTranslating = false;
     private Bitmap logoBitmap;
     
     // Static reference for communication
@@ -226,7 +227,7 @@ public class OverlayService extends Service {
                 PixelFormat.TRANSLUCENT);
 
         navbarParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-        navbarParams.y = (int) (24 * getResources().getDisplayMetrics().density);
+        navbarParams.y = (int) (80 * getResources().getDisplayMetrics().density);
     }
     
     private void createTranslationView() {
@@ -396,14 +397,35 @@ public class OverlayService extends Service {
         }
         x += autoW;
         
-        // 5. Translate button
+        // 5. Translate / Start / Stop button
         translateBtn.set(x + gap, btnY, x + transW - gap, btnY + btnHeight);
-        btnPaint.setColor(Color.parseColor("#4285F4"));
-        canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
-        textPaint.setColor(Color.WHITE);
-        String transText = "Dịch";
-        float transTextW = textPaint.measureText(transText);
-        canvas.drawText(transText, translateBtn.centerX() - transTextW / 2, textY, textPaint);
+        if (isAutoMode) {
+            if (isTranslating) {
+                // Stop button (red)
+                btnPaint.setColor(Color.parseColor("#FFEBEE"));
+                canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
+                textPaint.setColor(Color.parseColor("#D32F2F"));
+                String stopText = "⏹ Stop";
+                float stopTextW = textPaint.measureText(stopText);
+                canvas.drawText(stopText, translateBtn.centerX() - stopTextW / 2, textY, textPaint);
+            } else {
+                // Start button (green)
+                btnPaint.setColor(Color.parseColor("#E8F5E9"));
+                canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
+                textPaint.setColor(Color.parseColor("#2E7D32"));
+                String startText = "▶ Start";
+                float startTextW = textPaint.measureText(startText);
+                canvas.drawText(startText, translateBtn.centerX() - startTextW / 2, textY, textPaint);
+            }
+        } else {
+            // Manual mode: Dịch button (blue)
+            btnPaint.setColor(Color.parseColor("#4285F4"));
+            canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
+            textPaint.setColor(Color.WHITE);
+            String transText = "Dịch";
+            float transTextW = textPaint.measureText(transText);
+            canvas.drawText(transText, translateBtn.centerX() - transTextW / 2, textY, textPaint);
+        }
     }
     
     private String getModeIcon(String mode) {
@@ -474,6 +496,13 @@ public class OverlayService extends Service {
             this.currentMode = mode != null ? mode : "REALTIME";
             this.sourceLanguage = sourceLang != null ? sourceLang : "Auto";
             this.targetLanguage = targetLang != null ? targetLang : "VN";
+            if (navbarView != null) navbarView.invalidate();
+        });
+    }
+
+    public void setTranslating(boolean translating) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            this.isTranslating = translating;
             if (navbarView != null) navbarView.invalidate();
         });
     }

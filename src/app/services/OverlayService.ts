@@ -198,6 +198,14 @@ class OverlayService {
     }
 
     /**
+     * Set translating state for Start/Stop button in navbar.
+     */
+    setTranslating(translating: boolean): void {
+        if (!this.isSupported) return;
+        OverlayModule.setTranslating(translating);
+    }
+
+    /**
      * Update overlay with translated blocks.
      */
     updateOverlay(blocks: any[]): void {
