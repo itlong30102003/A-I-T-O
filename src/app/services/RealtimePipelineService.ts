@@ -35,6 +35,7 @@ class RealtimePipelineService {
 
     // Auto/Manual mode
     private isAutoMode = true;
+    private overlayEnabled = false;
     private debounceTimer: any = null;
     private static readonly DEBOUNCE_MS = 500;
 
@@ -57,6 +58,7 @@ class RealtimePipelineService {
     };
 
     start(config: PipelineConfig): void {
+        console.log(`[PIPELINE] 📥 start() called | current status: ${this.status} | config:`, JSON.stringify(config));
         if (this.status === 'running') {
             this.config = { ...this.config, ...config };
             console.log('[PIPELINE] Config updated while running');
@@ -70,6 +72,7 @@ class RealtimePipelineService {
         this.latestFrame = null;
         this.lastOcrText = '';
         this.lastTranslatedBlocks = [];
+        this.overlayEnabled = false;
         this.translationCache.clear();
         this.stats = { framesReceived: 0, ocrCompleted: 0, translationsCompleted: 0, cacheHits: 0 };
 
@@ -77,15 +80,20 @@ class RealtimePipelineService {
         const { NativeEventEmitter } = require('react-native');
         const emitter = new NativeEventEmitter(ScreenCaptureModule);
 
+        console.log('[PIPELINE] 🔌 Subscribing to onFrameCaptured...');
         this.nativeSubscription = emitter.addListener('onFrameCaptured', (event: any) => {
-            if (this.status !== 'running') return;
+            console.log(`[PIPELINE] 📷 Frame event received | status: ${this.status} | path: ${event.imagePath?.substring(0, 50)}...`);
+            if (this.status !== 'running') {
+                console.log('[PIPELINE] ⚠️ Ignoring frame - pipeline not running');
+                return;
+            }
             this.handleFrame({
                 path: event.imagePath,
                 timestamp: event.timestamp || Date.now(),
             });
         });
 
-        console.log('[PIPELINE] ▶️ Started (mode: ' + (this.isAutoMode ? 'AUTO' : 'MANUAL') + ')');
+        console.log('[PIPELINE] ▶️ Started (mode: ' + (this.isAutoMode ? 'AUTO' : 'MANUAL') + ') | overlayEnabled: ' + this.overlayEnabled);
     }
 
     stop(): void {
@@ -137,6 +145,24 @@ class RealtimePipelineService {
         return this.isAutoMode;
     }
 
+    /**
+     * Enable/disable overlay display.
+     * When enabled, shows cached result immediately.
+     * Pipeline keeps running OCR→translate→cache regardless.
+     */
+    setOverlayEnabled(enabled: boolean): void {
+        this.overlayEnabled = enabled;
+        console.log(`[PIPELINE] Overlay: ${enabled ? '👁️ ENABLED' : '🙈 DISABLED'}`);
+        if (enabled && this.lastTranslatedBlocks.length > 0) {
+            // Show cached result immediately
+            overlayService.updateOverlay(this.lastTranslatedBlocks);
+            overlayService.showTranslation();
+            console.log('[PIPELINE] 💨 Showing cached overlay instantly');
+        } else if (!enabled) {
+            overlayService.hideTranslation();
+        }
+    }
+
     getStatus(): PipelineStatus {
         return this.status;
     }
@@ -167,18 +193,19 @@ class RealtimePipelineService {
         this.stats.framesReceived++;
         this.latestFrame = frame;
 
-        // Hide overlay immediately — screen has changed
-        overlayService.hideTranslation();
-
-        // Cancel any pending debounce
-        if (this.debounceTimer) {
-            clearTimeout(this.debounceTimer);
-            this.debounceTimer = null;
+        // Hide overlay immediately — screen has changed (only if overlay is enabled)
+        if (this.overlayEnabled) {
+            overlayService.hideTranslation();
         }
 
-        // In auto mode, start debounce to wait for stable frame
+        // In auto mode, process immediately (skip if already processing)
         if (this.isAutoMode) {
-            this.startDebounce(frame);
+            if (this.isProcessing) {
+                console.log(`[PIPELINE] 🖼️ Frame #${this.currentFrameId} queued (processing in progress)`);
+                return;
+            }
+            console.log(`[PIPELINE] 🖼️ Frame #${this.currentFrameId} → processing immediately`);
+            this.processFrame(frame, this.currentFrameId);
         }
         // In manual mode, do nothing — wait for user to press "Dịch"
     };
@@ -189,12 +216,23 @@ class RealtimePipelineService {
         this.debounceTimer = setTimeout(() => {
             this.debounceTimer = null;
 
-            // Verify frame is still current
-            if (frameId !== this.currentFrameId) return;
-            if (this.status !== 'running') return;
-            if (this.isProcessing) return;
+            console.log(`[PIPELINE] ⏰ Debounce fired | frameId: ${frameId} | currentFrameId: ${this.currentFrameId} | status: ${this.status} | isProcessing: ${this.isProcessing}`);
 
-            console.log(`[PIPELINE] ⏰ Debounce complete, processing frame`);
+            // Verify frame is still current
+            if (frameId !== this.currentFrameId) {
+                console.log('[PIPELINE] ⏭️ Frame outdated in debounce, skipping');
+                return;
+            }
+            if (this.status !== 'running') {
+                console.log('[PIPELINE] ⏭️ Pipeline not running in debounce, skipping');
+                return;
+            }
+            if (this.isProcessing) {
+                console.log('[PIPELINE] ⏭️ Already processing in debounce, skipping');
+                return;
+            }
+
+            console.log(`[PIPELINE] ✅ Debounce complete, calling processFrame`);
             this.processFrame(frame, frameId);
         }, RealtimePipelineService.DEBOUNCE_MS);
     }
@@ -204,13 +242,19 @@ class RealtimePipelineService {
         const startTime = Date.now();
 
         try {
+            // Guard: pipeline must still be running
+            if (this.status !== 'running') {
+                console.log(`[PIPELINE] ⏭️ Pipeline stopped, aborting`);
+                return;
+            }
+
             // OCR
             const ocrStart = Date.now();
             const blocks = await textDetectionService.detectText(frame.path, this.config.script);
             console.log(`[PIPELINE] 🔍 OCR: ${blocks?.length || 0} blocks | ${Date.now() - ocrStart}ms`);
 
-            if (frameId !== this.currentFrameId || this.status !== 'running') {
-                console.log(`[PIPELINE] ⏭️ Frame outdated, discarding`);
+            if (this.status !== 'running') {
+                console.log(`[PIPELINE] ⏭️ Pipeline stopped after OCR, aborting`);
                 return;
             }
 
@@ -227,10 +271,12 @@ class RealtimePipelineService {
 
             // Check if text is same as last translated
             if (currentText === this.lastOcrText && this.lastTranslatedBlocks.length > 0) {
-                console.log(`[PIPELINE] ♻️ Text unchanged, showing cached overlay`);
+                console.log(`[PIPELINE] ♻️ Text unchanged, using cached result`);
                 this.stats.cacheHits++;
-                overlayService.updateOverlay(this.lastTranslatedBlocks);
-                overlayService.showTranslation();
+                if (this.overlayEnabled) {
+                    overlayService.updateOverlay(this.lastTranslatedBlocks);
+                    overlayService.showTranslation();
+                }
                 console.log(`[PIPELINE] ✅ Cache hit | Total: ${Date.now() - startTime}ms`);
                 return;
             }
@@ -242,8 +288,10 @@ class RealtimePipelineService {
                 this.stats.cacheHits++;
                 this.lastOcrText = currentText;
                 this.lastTranslatedBlocks = cachedResult;
-                overlayService.updateOverlay(cachedResult);
-                overlayService.showTranslation();
+                if (this.overlayEnabled) {
+                    overlayService.updateOverlay(cachedResult);
+                    overlayService.showTranslation();
+                }
                 console.log(`[PIPELINE] ✅ Hash cache hit | Total: ${Date.now() - startTime}ms`);
                 return;
             }
@@ -259,9 +307,8 @@ class RealtimePipelineService {
             });
             console.log(`[PIPELINE] 🌐 Translate: ${response.results?.length || 0} results | ${Date.now() - transStart}ms`);
 
-            // Check again if frame is still current
-            if (frameId !== this.currentFrameId || this.status !== 'running') {
-                console.log(`[PIPELINE] ⏭️ Frame outdated after translate, discarding`);
+            if (this.status !== 'running') {
+                console.log(`[PIPELINE] ⏭️ Pipeline stopped after translate, aborting`);
                 return;
             }
 
@@ -284,14 +331,22 @@ class RealtimePipelineService {
                 if (firstKey) this.translationCache.delete(firstKey);
             }
 
-            // Show overlay
-            overlayService.updateOverlay(translatedBlocks);
-            overlayService.showTranslation();
-            console.log(`[PIPELINE] ✅ COMPLETE | Total: ${Date.now() - startTime}ms | Stats: ${JSON.stringify(this.stats)}`);
+            // Show overlay only if enabled
+            if (this.overlayEnabled) {
+                overlayService.updateOverlay(translatedBlocks);
+                overlayService.showTranslation();
+            }
+            console.log(`[PIPELINE] ✅ COMPLETE (overlay: ${this.overlayEnabled ? 'ON' : 'OFF'}) | Total: ${Date.now() - startTime}ms | Stats: ${JSON.stringify(this.stats)}`);
         } catch (error) {
             console.error(`[PIPELINE] ❌ ERROR:`, error);
         } finally {
             this.isProcessing = false;
+
+            // If newer frame arrived during processing, process latest (latest-wins)
+            if (this.isAutoMode && this.status === 'running' && this.latestFrame && this.latestFrame !== frame) {
+                console.log(`[PIPELINE] 🔄 Newer frame available, processing latest...`);
+                this.processFrame(this.latestFrame, this.currentFrameId);
+            }
         }
     }
 

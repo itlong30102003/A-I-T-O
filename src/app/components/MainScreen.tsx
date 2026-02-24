@@ -210,6 +210,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         handleSelectEntireScreen();
     }, [translationMode, captureState.isCapturing, captureState.permissionGranted, handleSelectEntireScreen]);
 
+
     // Preload ML Kit models
     useEffect(() => {
         const unsubscribe = mlKitTranslationService.onStatusChange((status: any) => {
@@ -226,41 +227,44 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         return () => unsubscribe();
     }, []);
 
-    // Pipeline management
+    // Pipeline management — setup overlay + auto-start pipeline (pre-warm)
     useEffect(() => {
+        console.log(`MainScreen: [PIPELINE-EFFECT] isCapturing: ${captureState.isCapturing} | mode: ${translationMode}`);
         if (!captureState.isCapturing) {
+            console.log('MainScreen: [PIPELINE-EFFECT] Not capturing, stopping all');
             realtimePipelineService.stop();
             selectionPipelineService.stop();
             ocrPipelineService.stop();
             overlayService.stop();
+            setIsRealtimeActive(false);
             return;
         }
 
         const startPipelines = async () => {
-            console.log(`MainScreen: Starting pipelines (Mode: ${translationMode})`);
+            console.log(`MainScreen: [PIPELINE-EFFECT] Starting pipelines (Mode: ${translationMode})`);
             const script = ['zh', 'ja', 'ko'].includes(sourceLang.code) ? 'chinese' : 'latin';
 
+            console.log('MainScreen: [PIPELINE-EFFECT] Calling overlayService.start...');
             await overlayService.start('[]');
+            console.log('MainScreen: [PIPELINE-EFFECT] overlayService.start done');
 
             if (translationMode === 'REALTIME') {
-                // Show navbar immediately — native side queues until service ready
+                console.log('MainScreen: [PIPELINE-EFFECT] REALTIME branch — setting up navbar + starting pipeline');
+                // Show navbar immediately
                 overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
                 overlayService.showLogo();
                 overlayService.toggleNavbar();
 
-                if (isRealtimeActive) {
-                    // User pressed Start — run the pipeline
-                    overlayService.setTranslating(true);
-                    realtimePipelineService.start({
-                        script,
-                        sourceLanguage: sourceLang.code,
-                        targetLanguage: targetLang.code,
-                    });
-                } else {
-                    // Show Start button, pause pipeline if it was running
-                    realtimePipelineService.pause();
-                    overlayService.setTranslating(false);
-                }
+                // Auto-start pipeline (pre-warm: OCR → translate → cache)
+                // Overlay starts disabled — user presses Start to show
+                realtimePipelineService.start({
+                    script,
+                    sourceLanguage: sourceLang.code,
+                    targetLanguage: targetLang.code,
+                });
+                realtimePipelineService.setOverlayEnabled(false);
+                overlayService.setTranslating(false);
+                console.log('MainScreen: [PIPELINE-EFFECT] REALTIME pipeline started, overlay disabled, waiting for Start');
             } else if (translationMode === 'SELECTION') {
                 overlayService.showLogo();
                 overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
@@ -283,7 +287,15 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                 ocrPipelineService.stop();
             }
         };
-    }, [captureState.isCapturing, translationMode, selectionType, sourceLang, targetLang, isRealtimeActive]);
+    }, [captureState.isCapturing, translationMode, selectionType, sourceLang, targetLang]);
+
+    // Realtime overlay toggle — driven by navbar Start/Stop button
+    useEffect(() => {
+        if (!captureState.isCapturing || translationMode !== 'REALTIME') return;
+
+        realtimePipelineService.setOverlayEnabled(isRealtimeActive);
+        overlayService.setTranslating(isRealtimeActive);
+    }, [isRealtimeActive]);
 
     // Sync overlay style & text size to native
     useEffect(() => {
@@ -460,37 +472,15 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                             </TouchableOpacity>
                         )}
 
-                        {permissionGranted && (
-                            <>
-                                <View style={styles.buttonRow}>
-                                    <TouchableOpacity
-                                        style={[styles.buttonStart, isCapturing && styles.buttonDisabled]}
-                                        onPress={handleStartCapture}
-                                        disabled={isCapturing}
-                                    >
-                                        <Text style={styles.buttonText}>{t('main.start')}</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity
-                                        style={[styles.buttonStop, !isCapturing && styles.buttonDisabled]}
-                                        onPress={handleStopCapture}
-                                        disabled={!isCapturing}
-                                    >
-                                        <Text style={styles.buttonText}>{t('main.stop')}</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                {androidInfo?.supportsAppSelection && (
-                                    <TouchableOpacity
-                                        style={styles.buttonChangeApp}
-                                        onPress={handleChangeApp}
-                                    >
-                                        <Text style={styles.buttonChangeAppText}>
-                                            {t('main.changeApp')}
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                            </>
+                        {permissionGranted && androidInfo?.supportsAppSelection && (
+                            <TouchableOpacity
+                                style={styles.buttonChangeApp}
+                                onPress={handleChangeApp}
+                            >
+                                <Text style={styles.buttonChangeAppText}>
+                                    {t('main.changeApp')}
+                                </Text>
+                            </TouchableOpacity>
                         )}
                     </View>
                 )}
