@@ -175,10 +175,11 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
             const newMode = !realtimePipelineService.getAutoMode();
             console.log('MainScreen: AutoMode toggled to', newMode ? 'AUTO' : 'MANUAL');
             realtimePipelineService.setAutoMode(newMode);
-            // Reset: pause pipeline and show Start button
+            // Reset overlay state — keep pipeline running so frames are still received
             setIsRealtimeActive(false);
-            realtimePipelineService.pause();
+            realtimePipelineService.setOverlayEnabled(false);
             overlayService.setTranslating(false);
+            overlayService.hideTranslation();
         });
 
         const unsubsClose = overlayService.onCloseClick(() => {

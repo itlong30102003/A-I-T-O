@@ -171,7 +171,10 @@ class RealtimePipelineService {
      * Manual translate trigger — called when user presses "Dịch" button
      */
     triggerManualTranslate(): void {
-        if (this.status !== 'running') return;
+        if (this.status !== 'running') {
+            console.log('[PIPELINE] ⚠️ Manual translate: pipeline not running');
+            return;
+        }
         if (!this.latestFrame) {
             console.log('[PIPELINE] ⚠️ No frame available for manual translate');
             return;
@@ -182,6 +185,8 @@ class RealtimePipelineService {
         }
 
         console.log('[PIPELINE] 🔘 Manual translate triggered');
+        // Force enable overlay to show the one-shot result
+        this.overlayEnabled = true;
         this.currentFrameId++;
         this.processFrame(this.latestFrame, this.currentFrameId);
     }
