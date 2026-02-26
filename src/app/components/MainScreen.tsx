@@ -146,12 +146,17 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
             }
         });
 
-        const unsubsSourceLang = overlayService.onSourceLangClick(() => {
-            setShowLanguageModal('source');
-        });
-
-        const unsubsTargetLang = overlayService.onTargetLangClick(() => {
-            setShowLanguageModal('target');
+        const unsubsLanguageSelected = overlayService.onLanguageSelected((isSource, code) => {
+            console.log('MainScreen: onLanguageSelected', isSource, code);
+            const langList = isSource ? LANGUAGES.source : LANGUAGES.target;
+            const selectedLang = langList.find(l => l.code === code);
+            if (selectedLang) {
+                if (isSource) {
+                    setSourceLang(selectedLang);
+                } else {
+                    setTargetLang(selectedLang);
+                }
+            }
         });
 
         const unsubsTranslate = overlayService.onTranslateClick(() => {
@@ -194,8 +199,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
 
         return () => {
             unsubsLogo();
-            unsubsSourceLang();
-            unsubsTargetLang();
+            unsubsLanguageSelected();
             unsubsTranslate();
             unsubsAutoMode();
             unsubsClose();

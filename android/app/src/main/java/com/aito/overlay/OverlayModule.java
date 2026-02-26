@@ -13,6 +13,8 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 /**
@@ -105,13 +107,11 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
         
         OverlayService.instance.setOnNavbarEventListener(new OverlayService.OnNavbarEventListener() {
             @Override
-            public void onSourceLangClick() {
-                emitEvent("onNavbarSourceLangClick", null);
-            }
-            
-            @Override
-            public void onTargetLangClick() {
-                emitEvent("onNavbarTargetLangClick", null);
+            public void onLanguageSelected(boolean isSource, String code) {
+                WritableMap map = Arguments.createMap();
+                map.putBoolean("isSource", isSource);
+                map.putString("code", code);
+                emitEvent("onNavbarLanguageSelected", map);
             }
             
             @Override

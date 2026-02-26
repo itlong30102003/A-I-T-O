@@ -137,20 +137,13 @@ class OverlayService {
     }
 
     /**
-     * Subscribe to source language button click.
+     * Subscribe to language selection from native overlay menu.
      */
-    onSourceLangClick(callback: () => void): () => void {
+    onLanguageSelected(callback: (isSource: boolean, code: string) => void): () => void {
         if (!this.isSupported || !this.emitter) return () => { };
-        const subscription = this.emitter.addListener('onNavbarSourceLangClick', callback);
-        return () => subscription.remove();
-    }
-
-    /**
-     * Subscribe to target language button click.
-     */
-    onTargetLangClick(callback: () => void): () => void {
-        if (!this.isSupported || !this.emitter) return () => { };
-        const subscription = this.emitter.addListener('onNavbarTargetLangClick', callback);
+        const subscription = this.emitter.addListener('onNavbarLanguageSelected', (event: any) => {
+            callback(event.isSource, event.code);
+        });
         return () => subscription.remove();
     }
 

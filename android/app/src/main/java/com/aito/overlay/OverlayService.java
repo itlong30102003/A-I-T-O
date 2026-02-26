@@ -25,6 +25,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.content.pm.ServiceInfo;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.graphics.drawable.GradientDrawable;
+
 import androidx.core.app.NotificationCompat;
 import com.aito.R;
 
@@ -41,10 +46,17 @@ public class OverlayService extends Service {
     private View logoView;
     private View navbarView;
     private OverlayView translationView;
+    private View languageMenuView;
     
     private WindowManager.LayoutParams logoParams;
     private WindowManager.LayoutParams navbarParams;
     private WindowManager.LayoutParams translationParams;
+    private WindowManager.LayoutParams menuParams;
+
+    private final String[] sourceLangCodes = {"auto", "en", "zh", "ja", "ko", "vi"};
+    private final String[] sourceLangLabels = {"✨ Auto Detect", "🇺🇸 English", "🇨🇳 Chinese", "🇯🇵 Japanese", "🇰🇷 Korean", "🇻🇳 Vietnamese"};
+    private final String[] targetLangCodes = {"vi", "en"};
+    private final String[] targetLangLabels = {"🇻🇳 Vietnamese", "🇺🇸 English"};
     
     // Dimensions
     private int logoSizePx;
@@ -77,8 +89,7 @@ public class OverlayService extends Service {
     }
     
     public interface OnNavbarEventListener {
-        void onSourceLangClick();
-        void onTargetLangClick();
+        void onLanguageSelected(boolean isSource, String code);
         void onTranslateClick();
         void onAutoModeClick();
         void onCloseClick();
@@ -192,11 +203,11 @@ public class OverlayService extends Service {
                         return true;
                     }
                     if (sourceLangBtn.contains(x, y)) {
-                        if (jsNavbarListener != null) jsNavbarListener.onSourceLangClick();
+                        showLanguageMenu(true);
                         return true;
                     }
                     if (targetLangBtn.contains(x, y)) {
-                        if (jsNavbarListener != null) jsNavbarListener.onTargetLangClick();
+                        showLanguageMenu(false);
                         return true;
                     }
                     if (autoModeBtn.contains(x, y)) {
@@ -260,6 +271,119 @@ public class OverlayService extends Service {
                 Log.e(TAG, "Error showing translation overlay", e);
             }
         });
+    }
+    
+    private void showLanguageMenu(boolean isSource) {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            if (languageMenuView != null && languageMenuView.getParent() != null) {
+                windowManager.removeView(languageMenuView);
+            }
+            languageMenuView = createLanguageMenuView(isSource);
+            int layoutFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? 
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : 
+                WindowManager.LayoutParams.TYPE_PHONE;
+            menuParams = new WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    layoutFlag,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                    PixelFormat.TRANSLUCENT);
+            menuParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            menuParams.y = navbarHeightPx + navbarTopMarginPx + 150; // Show above the navbar
+            windowManager.addView(languageMenuView, menuParams);
+        });
+    }
+    
+    private View createLanguageMenuView(boolean isSource) {
+        float density = getResources().getDisplayMetrics().density;
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.WHITE);
+        bg.setCornerRadius(16 * density);
+        bg.setStroke((int)(1 * density), Color.parseColor("#E0E0E0"));
+        container.setBackground(bg);
+        container.setPadding((int)(20*density), (int)(20*density), (int)(20*density), (int)(20*density));
+        
+        TextView title = new TextView(this);
+        title.setText(isSource ? "Chọn ngôn ngữ nguồn" : "Chọn ngôn ngữ đích");
+        title.setTextSize(18);
+        title.setTextColor(Color.parseColor("#333333"));
+        title.setPadding(0, 0, 0, (int)(16*density));
+        title.setGravity(Gravity.CENTER);
+        title.getPaint().setFakeBoldText(true);
+        container.addView(title);
+        
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        
+        String[] codes = isSource ? sourceLangCodes : targetLangCodes;
+        String[] labels = isSource ? sourceLangLabels : targetLangLabels;
+        
+        for (int i = 0; i < codes.length; i++) {
+            final String code = codes[i];
+            final String label = labels[i];
+            
+            TextView item = new TextView(this);
+            item.setText(label);
+            item.setTextSize(16);
+            item.setTextColor(Color.parseColor("#333333"));
+            item.setPadding(0, (int)(12*density), 0, (int)(12*density));
+            item.setOnClickListener(v -> {
+                if (languageMenuView != null && languageMenuView.getParent() != null) {
+                    windowManager.removeView(languageMenuView);
+                }
+                if (isSource) {
+                    sourceLanguage = label;
+                } else {
+                    targetLanguage = label;
+                }
+                if (navbarView != null) navbarView.invalidate();
+                if (jsNavbarListener != null) {
+                    jsNavbarListener.onLanguageSelected(isSource, code);
+                }
+            });
+            list.addView(item);
+            
+            if (i < codes.length - 1) {
+                View divider = new View(this);
+                divider.setBackgroundColor(Color.parseColor("#EEEEEE"));
+                divider.setLayoutParams(new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, (int)(1 * density)));
+                list.addView(divider);
+            }
+        }
+        scroll.addView(list);
+        container.addView(scroll);
+        
+        // Add close button
+        TextView closeBtn = new TextView(this);
+        closeBtn.setText("Đóng");
+        closeBtn.setTextSize(16);
+        closeBtn.setTextColor(Color.parseColor("#666666"));
+        closeBtn.setGravity(Gravity.CENTER);
+        
+        GradientDrawable closeBg = new GradientDrawable();
+        closeBg.setColor(Color.parseColor("#F5F5F5"));
+        closeBg.setCornerRadius(8 * density);
+        closeBtn.setBackground(closeBg);
+        
+        LinearLayout.LayoutParams closeParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        closeParams.setMargins(0, (int)(16*density), 0, 0);
+        closeBtn.setLayoutParams(closeParams);
+        closeBtn.setPadding(0, (int)(12*density), 0, (int)(12*density));
+        
+        closeBtn.setOnClickListener(v -> {
+            if (languageMenuView != null && languageMenuView.getParent() != null) {
+                windowManager.removeView(languageMenuView);
+            }
+        });
+        container.addView(closeBtn);
+        
+        return container;
     }
     
     public void hideTranslation() {
@@ -559,6 +683,7 @@ public class OverlayService extends Service {
         try {
             if (logoView != null && logoView.getParent() != null) windowManager.removeView(logoView);
             if (navbarView != null && navbarView.getParent() != null) windowManager.removeView(navbarView);
+            if (languageMenuView != null && languageMenuView.getParent() != null) windowManager.removeView(languageMenuView);
             if (translationView != null && translationView.getParent() != null) windowManager.removeView(translationView);
         } catch (Exception e) {
             Log.e(TAG, "Error in onDestroy", e);
