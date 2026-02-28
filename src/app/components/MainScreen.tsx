@@ -27,12 +27,14 @@ import { useCaptureState } from '../modules/core/hooks/useCaptureState';
 import {
     LanguageModal,
     DeviceInfoSection,
-    ModelLoadingCard,
     UserHeader,
     ModeSelector,
     CaptureControls,
-    TranslationResultModal
+    TranslationResultModal,
+    AppHeader,
+    LanguageSelector
 } from '../modules/ui';
+import { getTheme } from '../modules/ui/theme';
 
 // Selection module imports
 import SelectionTypeSelector from '../modules/selection/SelectionTypeSelector';
@@ -89,18 +91,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
 
     // Theme colors
     const isDark = theme === 'dark';
-    const colors = useMemo(() => ({
-        bg: isDark ? '#1a1a2e' : '#f5f5f5',
-        card: isDark ? '#16213e' : '#fff',
-        text: isDark ? '#e0e0e0' : '#333',
-        subtext: isDark ? '#a0a0a0' : '#666',
-        border: isDark ? '#2a2a4a' : '#eee',
-        accent: '#4285F4',
-        success: '#34A853',
-        error: '#EA4335',
-        buttonBg: isDark ? '#2a2a4a' : '#f1f3f4',
-        modalBg: isDark ? '#16213e' : '#fff',
-    }), [isDark]);
+    const colors = useMemo(() => getTheme(isDark), [isDark]);
 
     // Model Loading State
     const [modelLoadingStatus, setModelLoadingStatus] = useState({
@@ -345,26 +336,26 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
     }
     return (
         <View style={{ flex: 1 }}>
-            <ScrollView style={[styles.container, { backgroundColor: colors.bg }]}>
-                {/* User Info - Using extracted component */}
+            <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
+                <AppHeader colors={colors} />
+
                 <UserHeader
                     colors={colors}
                     onSettingsPress={() => setShowSettings(true)}
+                    onLogoutPress={handleLogout}
                 />
 
-                {/* Device Info - Using extracted component */}
-                <DeviceInfoSection androidInfo={androidInfo} />
+                <DeviceInfoSection
+                    androidInfo={androidInfo}
+                    modelStatus={modelLoadingStatus}
+                    colors={colors}
+                />
 
-                {/* Model Loading - Using extracted component */}
-                <ModelLoadingCard status={modelLoadingStatus} />
-
-                {/* Mode Selector - Using extracted component */}
                 <ModeSelector
                     translationMode={translationMode}
                     onModeChange={handleModeChange}
                     colors={colors}
                 >
-                    {/* Selection Type - Using extracted component */}
                     {translationMode === 'SELECTION' && (
                         <>
                             <SelectionTypeSelector
@@ -376,31 +367,20 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                     )}
                 </ModeSelector>
 
-                {/* Language Selector */}
-                <View style={[styles.languageSection, { backgroundColor: colors.card }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('main.language')}</Text>
-                    <View style={styles.languageRow}>
-                        <TouchableOpacity
-                            style={[styles.languageButton, { backgroundColor: isDark ? '#2a2a4a' : '#f8f9fa', borderColor: colors.border }]}
-                            onPress={() => setShowLanguageModal('source')}
-                        >
-                            <Text style={[styles.languageLabel, { color: colors.subtext }]}>{t('main.source')}</Text>
-                            <Text style={[styles.languageValue, { color: colors.text }]}>{sourceLang.label}</Text>
-                        </TouchableOpacity>
+                <LanguageSelector
+                    sourceLang={sourceLang}
+                    targetLang={targetLang}
+                    onSourcePress={() => setShowLanguageModal('source')}
+                    onTargetPress={() => setShowLanguageModal('target')}
+                    onSwap={() => {
+                        if (sourceLang.code !== 'auto') {
+                            setSourceLang(targetLang);
+                            setTargetLang(sourceLang);
+                        }
+                    }}
+                    colors={colors}
+                />
 
-                        <Text style={styles.arrow}>➡️</Text>
-
-                        <TouchableOpacity
-                            style={[styles.languageButton, { backgroundColor: isDark ? '#2a2a4a' : '#f8f9fa', borderColor: colors.border }]}
-                            onPress={() => setShowLanguageModal('target')}
-                        >
-                            <Text style={[styles.languageLabel, { color: colors.subtext }]}>{t('main.target')}</Text>
-                            <Text style={[styles.languageValue, { color: colors.text }]}>{targetLang.label}</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* Screen Capture Controls - Only for REALTIME mode */}
                 {translationMode === 'REALTIME' && (
                     <CaptureControls
                         isCapturing={isCapturing}
@@ -409,18 +389,15 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                         androidInfo={androidInfo}
                         onSelectApp={handleSelectApp}
                         onChangeApp={handleChangeApp}
+                        onStartCapture={handleStartCapture}
+                        onStopCapture={handleStopCapture}
                         colors={colors}
                         isDark={isDark}
+                        selectedApp={null}
                     />
                 )}
-
-                {/* Logout Button */}
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Text style={styles.logoutText}>{t('main.logout')}</Text>
-                </TouchableOpacity>
             </ScrollView>
 
-            {/* Language Modal - Using extracted component */}
             <LanguageModal
                 visible={!!showLanguageModal}
                 type={showLanguageModal}

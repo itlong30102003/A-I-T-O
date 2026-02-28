@@ -6,3 +6,5 @@ export { default as UserHeader } from './UserHeader';
 export { default as ModeSelector } from './ModeSelector';
 export { default as CaptureControls } from './CaptureControls';
 export { default as TranslationResultModal } from './TranslationResultModal';
+export { default as AppHeader } from './AppHeader';
+export { default as LanguageSelector } from './LanguageSelector';

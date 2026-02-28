@@ -2,18 +2,30 @@ import React, { useMemo, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MODES, TranslationMode } from '../core';
 import { useSettings } from '../settings/SettingsContext';
+import { Zap, MousePointer2, Camera, FolderOpen } from 'lucide-react-native';
 
 interface ModeSelectorProps {
     translationMode: TranslationMode;
     onModeChange: (modeId: TranslationMode) => void;
-    colors: {
-        card: string;
-        text: string;
-        buttonBg: string;
-        subtext: string;
-    };
+    colors: any;
     children?: React.ReactNode;
 }
+
+const getIconForMode = (modeId: string, color: string, isActive: boolean) => {
+    const size = 18;
+    switch (modeId) {
+        case 'REALTIME':
+            return <Zap size={size} color={isActive ? color : color + '80'} />;
+        case 'SELECTION':
+            return <MousePointer2 size={size} color={isActive ? color : color + '80'} />;
+        case 'CAMERA':
+            return <Camera size={size} color={isActive ? color : color + '80'} />;
+        case 'RESOURCE':
+            return <FolderOpen size={size} color={isActive ? color : color + '80'} />;
+        default:
+            return <Zap size={size} color={isActive ? color : color + '80'} />;
+    }
+};
 
 const ModeSelector: React.FC<ModeSelectorProps> = memo(({ translationMode, onModeChange, colors, children }) => {
     const { t } = useSettings();
@@ -23,81 +35,132 @@ const ModeSelector: React.FC<ModeSelectorProps> = memo(({ translationMode, onMod
     }, [translationMode]);
 
     return (
-        <View style={[styles.modeSection, { backgroundColor: colors.card }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('main.translationMode')}</Text>
-            <View style={[styles.modeContainer, { backgroundColor: colors.buttonBg }]}>
-                {MODES.map((mode) => (
-                    <TouchableOpacity
-                        key={mode.id}
-                        style={[
-                            styles.modeButton,
-                            translationMode === mode.id && styles.modeButtonActive
-                        ]}
-                        onPress={() => onModeChange(mode.id as TranslationMode)}
-                    >
-                        <Text style={[
-                            styles.modeLabel,
-                            translationMode === mode.id && styles.modeLabelActive
-                        ]}>
-                            {mode.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.header}>
+                <View style={[styles.iconBox, { backgroundColor: colors.primary + '1A' }]}>
+                    <Zap size={16} color={colors.primary} />
+                </View>
+                <Text style={[styles.title, { color: colors.foreground }]}>{t('main.translationMode')}</Text>
             </View>
-            <Text style={[styles.modeDescription, { color: colors.subtext }]}>{currentModeDesc}</Text>
 
-            {children}
+            <View style={styles.grid}>
+                {MODES.map((mode) => {
+                    const isActive = translationMode === mode.id;
+                    return (
+                        <TouchableOpacity
+                            key={mode.id}
+                            style={[
+                                styles.modeButton,
+                                {
+                                    backgroundColor: isActive ? colors.primary : colors.secondary + '80',
+                                    shadowColor: isActive ? colors.primary : 'transparent',
+                                    elevation: isActive ? 4 : 0,
+                                }
+                            ]}
+                            onPress={() => onModeChange(mode.id as TranslationMode)}
+                            activeOpacity={0.7}
+                        >
+                            {getIconForMode(mode.id, isActive ? colors.primaryForeground : colors.mutedForeground, isActive)}
+                            <Text style={[
+                                styles.modeLabel,
+                                { color: isActive ? colors.primaryForeground : selectedColor(colors.mutedForeground, isActive) }
+                            ]} numberOfLines={1}>
+                                {mode.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
+
+            <View style={[styles.descContainer, { backgroundColor: colors.secondary + '4D' }]}>
+                <View style={[styles.pulseDot, { backgroundColor: colors.primary }]} />
+                <Text style={[styles.modeDescription, { color: colors.mutedForeground }]}>{currentModeDesc}</Text>
+            </View>
+
+            {children && (
+                <View style={styles.childrenContainer}>
+                    {children}
+                </View>
+            )}
         </View>
     );
+
+    function selectedColor(c: string, isActive: boolean) {
+        return isActive ? '#ffffff' : c;
+    }
 });
 
 ModeSelector.displayName = 'ModeSelector';
 
 const styles = StyleSheet.create({
-    modeSection: {
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 16
+    card: {
+        padding: 20,
+        borderRadius: 16,
+        borderWidth: 1,
+        marginBottom: 16,
     },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 12
-    },
-    modeContainer: {
+    header: {
         flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 16,
+    },
+    iconBox: {
+        width: 32,
+        height: 32,
         borderRadius: 8,
-        padding: 4,
-        marginBottom: 8
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    title: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
     },
     modeButton: {
-        flex: 1,
-        paddingVertical: 10,
+        flexBasis: '23%', // approx 4 cols
+        flexGrow: 1,
         alignItems: 'center',
-        borderRadius: 6
-    },
-    modeButtonActive: {
-        backgroundColor: '#fff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 1,
-        elevation: 2
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 4,
+        borderRadius: 12,
+        gap: 6,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
     },
     modeLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#666'
+        fontSize: 11,
+        fontWeight: '500',
+        textAlign: 'center',
     },
-    modeLabelActive: {
-        color: '#4285F4',
-        fontWeight: '700'
+    descContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 8,
+        marginTop: 12,
+        gap: 6,
+    },
+    pulseDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
     },
     modeDescription: {
         fontSize: 12,
-        fontStyle: 'italic',
-        textAlign: 'center',
-        marginBottom: 8
+    },
+    childrenContainer: {
+        marginTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#e2e8f0', // Fallback, handled by parent
+        paddingTop: 16,
     }
 });
 
