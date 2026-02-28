@@ -112,7 +112,7 @@ const STORAGE_KEY = '@aito_settings';
 
 const defaultSettings: SettingsState = {
     overlayStyle: 'dark',
-    theme: 'light',
+    theme: 'dark',
     overlayTextSize: 1.0,
     appLanguage: 'vi',
 };

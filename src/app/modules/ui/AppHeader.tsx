@@ -1,6 +1,7 @@
 import React, { memo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Languages } from 'lucide-react-native';
+import { useNetInfo } from '@react-native-community/netinfo';
 
 interface AppHeaderProps {
     colors: any;
@@ -8,23 +9,37 @@ interface AppHeaderProps {
 
 const AppHeader: React.FC<AppHeaderProps> = memo(({ colors }) => {
     const pulseAnim = useRef(new Animated.Value(1)).current;
+    const netInfo = useNetInfo();
+    const isOnline = netInfo.isConnected !== false;
 
     useEffect(() => {
-        Animated.loop(
-            Animated.sequence([
-                Animated.timing(pulseAnim, {
-                    toValue: 0.5,
-                    duration: 1000,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(pulseAnim, {
-                    toValue: 1,
-                    duration: 1000,
-                    useNativeDriver: true,
-                })
-            ])
-        ).start();
-    }, [pulseAnim]);
+        let animation: Animated.CompositeAnimation;
+        if (isOnline) {
+            animation = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 0.5,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 1000,
+                        useNativeDriver: true,
+                    })
+                ])
+            );
+            animation.start();
+        } else {
+            pulseAnim.setValue(1);
+        }
+
+        return () => {
+            if (animation) {
+                animation.stop();
+            }
+        };
+    }, [pulseAnim, isOnline]);
 
     return (
         <View style={styles.header}>
@@ -46,10 +61,15 @@ const AppHeader: React.FC<AppHeaderProps> = memo(({ colors }) => {
                 <Animated.View
                     style={[
                         styles.statusDot,
-                        { backgroundColor: colors.success, opacity: pulseAnim }
+                        {
+                            backgroundColor: isOnline ? colors.success : colors.destructive,
+                            opacity: isOnline ? pulseAnim : 1
+                        }
                     ]}
                 />
-                <Text style={[styles.statusText, { color: colors.mutedForeground }]}>Online</Text>
+                <Text style={[styles.statusText, { color: colors.mutedForeground }]}>
+                    {isOnline ? 'Online' : 'Offline'}
+                </Text>
             </View>
         </View>
     );
