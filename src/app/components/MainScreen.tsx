@@ -14,10 +14,8 @@ import {
     View,
     Text,
     TouchableOpacity,
-    Alert,
     StyleSheet,
     ScrollView,
-    Modal,
 } from 'react-native';
 
 // Core module imports
@@ -26,7 +24,15 @@ import { useAuth } from '../modules/core/hooks/useAuth';
 import { useCaptureState } from '../modules/core/hooks/useCaptureState';
 
 // UI module imports
-import { LanguageModal, DeviceInfoSection, ModelLoadingCard } from '../modules/ui';
+import {
+    LanguageModal,
+    DeviceInfoSection,
+    ModelLoadingCard,
+    UserHeader,
+    ModeSelector,
+    CaptureControls,
+    TranslationResultModal
+} from '../modules/ui';
 
 // Selection module imports
 import SelectionTypeSelector from '../modules/selection/SelectionTypeSelector';
@@ -122,7 +128,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
             await logout();
             if (onLogout) onLogout();
         } catch (error) {
-            Alert.alert(t('main.error'), t('main.logoutError'));
+            console.error(t('main.error'), ':', t('main.logoutError'), error);
         }
     }, [logout, onLogout, t]);
 
@@ -319,11 +325,6 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
     // Destructure state
     const { isCapturing, permissionGranted, androidInfo } = captureState;
 
-    // Memoize current mode description
-    const currentModeDesc = useMemo(() => {
-        return MODES.find(m => m.id === translationMode)?.desc || '';
-    }, [translationMode]);
-
     // Early return for Camera mode
     if (showCameraScreen) {
         return (
@@ -345,23 +346,11 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
     return (
         <View style={{ flex: 1 }}>
             <ScrollView style={[styles.container, { backgroundColor: colors.bg }]}>
-                {/* User Info */}
-                <View style={[styles.userSection, { backgroundColor: colors.card }]}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.userName, { color: colors.text }]}>
-                                {user?.displayName || user?.email || t('main.noName')}
-                            </Text>
-                            <Text style={[styles.userEmail, { color: colors.subtext }]}>{user?.email}</Text>
-                        </View>
-                        <TouchableOpacity
-                            style={[styles.settingsBtn, { backgroundColor: colors.buttonBg }]}
-                            onPress={() => setShowSettings(true)}
-                        >
-                            <Text style={{ fontSize: 20 }}>⚙️</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                {/* User Info - Using extracted component */}
+                <UserHeader
+                    colors={colors}
+                    onSettingsPress={() => setShowSettings(true)}
+                />
 
                 {/* Device Info - Using extracted component */}
                 <DeviceInfoSection androidInfo={androidInfo} />
@@ -369,30 +358,12 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                 {/* Model Loading - Using extracted component */}
                 <ModelLoadingCard status={modelLoadingStatus} />
 
-                {/* Mode Selector */}
-                <View style={[styles.modeSection, { backgroundColor: colors.card }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('main.translationMode')}</Text>
-                    <View style={[styles.modeContainer, { backgroundColor: colors.buttonBg }]}>
-                        {MODES.map((mode) => (
-                            <TouchableOpacity
-                                key={mode.id}
-                                style={[
-                                    styles.modeButton,
-                                    translationMode === mode.id && styles.modeButtonActive
-                                ]}
-                                onPress={() => handleModeChange(mode.id as TranslationMode)}
-                            >
-                                <Text style={[
-                                    styles.modeLabel,
-                                    translationMode === mode.id && styles.modeLabelActive
-                                ]}>
-                                    {mode.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                    <Text style={[styles.modeDescription, { color: colors.subtext }]}>{currentModeDesc}</Text>
-
+                {/* Mode Selector - Using extracted component */}
+                <ModeSelector
+                    translationMode={translationMode}
+                    onModeChange={handleModeChange}
+                    colors={colors}
+                >
                     {/* Selection Type - Using extracted component */}
                     {translationMode === 'SELECTION' && (
                         <>
@@ -403,7 +374,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                             <HistoryList strategy={selectionType} />
                         </>
                     )}
-                </View>
+                </ModeSelector>
 
                 {/* Language Selector */}
                 <View style={[styles.languageSection, { backgroundColor: colors.card }]}>
@@ -431,63 +402,16 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
 
                 {/* Screen Capture Controls - Only for REALTIME mode */}
                 {translationMode === 'REALTIME' && (
-                    <View style={[styles.captureSection, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('main.screenCapture')}</Text>
-
-                        <View style={[styles.statusContainer, { backgroundColor: isDark ? '#1a1a2e' : '#f8f9fa' }]}>
-                            <View style={styles.statusRow}>
-                                <Text style={[styles.statusLabel, { color: colors.subtext }]}>{t('main.captureSource')}</Text>
-                                <Text style={[
-                                    styles.statusValue,
-                                    permissionGranted ? styles.statusSuccess : styles.statusError
-                                ]}>
-                                    {permissionGranted ? t('main.selected') : t('main.notSelected')}
-                                </Text>
-                            </View>
-                            <View style={styles.statusRow}>
-                                <Text style={[styles.statusLabel, { color: colors.subtext }]}>{t('main.captureStatus')}</Text>
-                                <View style={styles.statusValueContainer}>
-                                    {isCapturing && <View style={styles.pulsingDot} />}
-                                    <Text style={[
-                                        styles.statusValue,
-                                        isCapturing ? styles.statusSuccess : styles.statusError
-                                    ]}>
-                                        {isCapturing ? t('main.capturing') : t('main.stopped')}
-                                    </Text>
-                                </View>
-                            </View>
-                            {isCapturing && (
-                                <View style={styles.statusRow}>
-                                    <Text style={[styles.statusLabel, { color: colors.subtext }]}>{t('main.captureTime')}</Text>
-                                    <Text style={styles.statusValue}>⏱️ {duration}</Text>
-                                </View>
-                            )}
-                        </View>
-
-                        {!permissionGranted && !isCapturing && (
-                            <TouchableOpacity
-                                style={styles.buttonPrimary}
-                                onPress={handleSelectApp}
-                            >
-                                <Text style={styles.buttonText}>
-                                    {androidInfo?.supportsAppSelection
-                                        ? t('main.selectApp')
-                                        : t('main.grantPermission')}
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-
-                        {permissionGranted && androidInfo?.supportsAppSelection && (
-                            <TouchableOpacity
-                                style={styles.buttonChangeApp}
-                                onPress={handleChangeApp}
-                            >
-                                <Text style={styles.buttonChangeAppText}>
-                                    {t('main.changeApp')}
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
+                    <CaptureControls
+                        isCapturing={isCapturing}
+                        permissionGranted={permissionGranted}
+                        duration={duration}
+                        androidInfo={androidInfo}
+                        onSelectApp={handleSelectApp}
+                        onChangeApp={handleChangeApp}
+                        colors={colors}
+                        isDark={isDark}
+                    />
                 )}
 
                 {/* Logout Button */}
@@ -507,33 +431,13 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
             />
 
             {/* Result Modal */}
-            <Modal
+            <TranslationResultModal
                 visible={showResultModal}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowResultModal(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setShowResultModal(false)}
-                >
-                    <View style={styles.resultPanel}>
-                        <View style={styles.resultHeader}>
-                            <Text style={styles.resultTitle}>📝 Bản dịch</Text>
-                            <TouchableOpacity onPress={() => setShowResultModal(false)}>
-                                <Text style={[styles.closeIcon, { color: isDark ? '#aaa' : '#999' }]}>✕</Text>
-                            </TouchableOpacity>
-                        </View>
-                        <ScrollView style={styles.resultContent}>
-                            <Text style={styles.translatedTextContent}>{selectedText}</Text>
-                        </ScrollView>
-                        <View style={styles.resultFooter}>
-                            <Text style={[styles.resultMeta, { color: colors.subtext }]}>{t('main.model')}</Text>
-                        </View>
-                    </View>
-                </TouchableOpacity>
-            </Modal>
+                selectedText={selectedText}
+                onClose={() => setShowResultModal(false)}
+                colors={colors}
+                isDark={isDark}
+            />
 
 
         </View>
@@ -545,51 +449,15 @@ MainScreen.displayName = 'MainScreen';
 // Styles - Kept from original for consistency
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-    userSection: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 16, alignItems: 'center' },
-    userName: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-    userEmail: { fontSize: 14, color: '#666', marginTop: 4 },
     sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 12 },
-    modeSection: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 16 },
-    modeContainer: { flexDirection: 'row', backgroundColor: '#f1f3f4', borderRadius: 8, padding: 4, marginBottom: 8 },
-    modeButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 6 },
-    modeButtonActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 1, elevation: 2 },
-    modeLabel: { fontSize: 13, fontWeight: '600', color: '#666' },
-    modeLabelActive: { color: '#4285F4', fontWeight: '700' },
-    modeDescription: { fontSize: 12, color: '#888', fontStyle: 'italic', textAlign: 'center' },
     languageSection: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 16 },
     languageRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     languageButton: { flex: 1, backgroundColor: '#f8f9fa', padding: 12, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
     languageLabel: { fontSize: 12, color: '#888', marginBottom: 4 },
     languageValue: { fontSize: 16, fontWeight: '600', color: '#333' },
     arrow: { fontSize: 20, marginHorizontal: 12 },
-    captureSection: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 16 },
-    statusContainer: { backgroundColor: '#f8f9fa', borderRadius: 8, padding: 12, marginBottom: 12 },
-    statusRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-    statusLabel: { fontSize: 14, color: '#666', width: 80 },
-    statusValue: { fontSize: 14, fontWeight: '600', color: '#333' },
-    statusValueContainer: { flexDirection: 'row', alignItems: 'center' },
-    statusSuccess: { color: '#34A853' },
-    statusError: { color: '#EA4335' },
-    pulsingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#34A853', marginRight: 6 },
-    buttonPrimary: { backgroundColor: '#4285F4', padding: 16, borderRadius: 8, alignItems: 'center', marginTop: 12 },
-    buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-    buttonStart: { backgroundColor: '#34A853', padding: 16, borderRadius: 8, flex: 1, marginRight: 8, alignItems: 'center' },
-    buttonStop: { backgroundColor: '#EA4335', padding: 16, borderRadius: 8, flex: 1, marginLeft: 8, alignItems: 'center' },
-    buttonDisabled: { opacity: 0.5 },
-    buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-    buttonChangeApp: { backgroundColor: '#fff', borderWidth: 2, borderColor: '#4285F4', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
-    buttonChangeAppText: { color: '#4285F4', fontSize: 15, fontWeight: '600' },
     logoutButton: { backgroundColor: '#666', padding: 16, borderRadius: 8, alignItems: 'center', marginBottom: 32 },
     logoutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    resultPanel: { backgroundColor: '#fff', marginHorizontal: 20, marginBottom: 40, borderRadius: 16, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 20 },
-    resultHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingBottom: 10 },
-    resultTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-    closeIcon: { fontSize: 24, color: '#999', padding: 4 },
-    resultContent: { maxHeight: 200 },
-    translatedTextContent: { fontSize: 16, lineHeight: 24, color: '#444' },
-    resultFooter: { marginTop: 15, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 10 },
-    resultMeta: { fontSize: 12, color: '#888', fontStyle: 'italic' },
     tabBar: { flexDirection: 'row', height: 60, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee', paddingBottom: 5 },
     tabItem: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     tabItemActive: { borderTopWidth: 2, borderTopColor: '#4285F4' },

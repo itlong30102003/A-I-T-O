@@ -8,7 +8,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    Alert,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -56,11 +55,11 @@ export default function LoginScreen({ onLoginSuccess }) {
 
     const handleEmailAuth = async () => {
         if (!email || !password) {
-            Alert.alert('Lỗi', 'Vui lòng nhập email và mật khẩu');
+            console.warn('Lỗi Validate:', 'Vui lòng nhập email và mật khẩu');
             return;
         }
         if (!isLogin && password !== confirmPassword) {
-            Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
+            console.warn('Lỗi Validate:', 'Mật khẩu xác nhận không khớp');
             return;
         }
 
@@ -89,7 +88,7 @@ export default function LoginScreen({ onLoginSuccess }) {
             } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 message = 'Email hoặc mật khẩu không đúng';
             }
-            Alert.alert('Lỗi', message);
+            console.error('Lỗi Email Auth:', message);
         } finally {
             setLoading(false);
         }
@@ -135,7 +134,7 @@ export default function LoginScreen({ onLoginSuccess }) {
                 message = 'Google Play Services không khả dụng';
             }
 
-            Alert.alert('Lỗi đăng nhập Google', message);
+            console.error('Lỗi đăng nhập Google:', message);
         } finally {
             setLoading(false);
         }
@@ -179,7 +178,7 @@ export default function LoginScreen({ onLoginSuccess }) {
             if (onLoginSuccess) onLoginSuccess();
         } catch (error) {
             console.error('Facebook login error:', error);
-            Alert.alert('Lỗi đăng nhập Facebook', error.message || 'Đã có lỗi xảy ra');
+            console.error('Lỗi đăng nhập Facebook:', error.message || 'Đã có lỗi xảy ra');
         } finally {
             setLoading(false);
         }

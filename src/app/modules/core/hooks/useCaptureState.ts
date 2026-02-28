@@ -41,14 +41,14 @@ export const useCaptureState = () => {
         try {
             const granted = await screenCaptureService.selectApp();
             if (!granted) {
-                Alert.alert('Quyền bị từ chối', 'Bạn cần cấp quyền để capture màn hình.', [{ text: 'OK' }]);
+                console.warn('Quyền bị từ chối: Bạn cần cấp quyền để capture màn hình.');
                 return false;
             }
             await screenCaptureService.startCapture({ intervalMs: 1000 });
             return true;
         } catch (error: any) {
             const isPermissionDenied = error.message?.includes('PERMISSION_DENIED');
-            Alert.alert('Lỗi', isPermissionDenied ? 'Bạn đã hủy việc chọn app.' : error.message);
+            console.error('Lỗi Select App:', isPermissionDenied ? 'Bạn đã hủy việc chọn app.' : error.message);
             return false;
         }
     }, []);
@@ -72,7 +72,7 @@ export const useCaptureState = () => {
             console.log('📺 Starting Selection Mode with Entire Screen...');
             const granted = await screenCaptureService.selectEntireScreen();
             if (!granted) {
-                Alert.alert('Quyền bị từ chối', 'Bạn cần cấp quyền để capture màn hình.', [{ text: 'OK' }]);
+                console.warn('Quyền bị từ chối: Bạn cần cấp quyền để capture màn hình.');
                 return false;
             }
             await screenCaptureService.startCapture({ intervalMs: 1000 });
@@ -80,7 +80,7 @@ export const useCaptureState = () => {
             return true;
         } catch (error: any) {
             const isPermissionDenied = error.message?.includes('PERMISSION_DENIED');
-            Alert.alert('Lỗi', isPermissionDenied ? 'Bạn đã hủy việc cấp quyền.' : error.message);
+            console.error('Lỗi Select Entire Screen:', isPermissionDenied ? 'Bạn đã hủy việc cấp quyền.' : error.message);
             return false;
         }
     }, []);
@@ -88,7 +88,7 @@ export const useCaptureState = () => {
     // Start capture
     const handleStartCapture = useCallback(async () => {
         if (!captureState.permissionGranted) {
-            Alert.alert('Chưa chọn nguồn', 'Vui lòng chọn app trước khi bắt đầu!', [{ text: 'OK' }]);
+            console.warn('Chưa chọn nguồn: Vui lòng chọn app trước khi bắt đầu!');
             return false;
         }
 
@@ -109,7 +109,7 @@ export const useCaptureState = () => {
             await screenCaptureService.startCapture({ intervalMs: 1000 });
             return true;
         } catch (error: any) {
-            Alert.alert('Lỗi khởi động', error.message || 'Không thể bắt đầu capture.', [{ text: 'OK' }]);
+            console.error('Lỗi khởi động capture:', error.message || 'Không thể bắt đầu capture.');
             return false;
         }
     }, [captureState.permissionGranted]);
@@ -120,7 +120,7 @@ export const useCaptureState = () => {
             await screenCaptureService.stopCapture();
             return true;
         } catch (error: any) {
-            Alert.alert('Lỗi', error.message || 'Không thể dừng capture', [{ text: 'OK' }]);
+            console.error('Lỗi dừng capture:', error.message || 'Không thể dừng capture');
             return false;
         }
     }, []);
@@ -128,7 +128,7 @@ export const useCaptureState = () => {
     // Change app
     const handleChangeApp = useCallback(() => {
         if (!screenCaptureService.supportsAppSelection) {
-            Alert.alert('Không hỗ trợ', 'Cần Android 14+ để chọn app cụ thể.', [{ text: 'OK' }]);
+            console.warn('Không hỗ trợ: Cần Android 14+ để chọn app cụ thể.');
             return;
         }
         Alert.alert(
