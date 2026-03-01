@@ -9,8 +9,8 @@ import {
     Platform,
     ScrollView,
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, FacebookAuthProvider } from '@react-native-firebase/auth';
+import { getFirestore, doc, setDoc, serverTimestamp } from '@react-native-firebase/firestore';
 import { LoginManager, AccessToken, Profile } from 'react-native-fbsdk-next';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
@@ -22,20 +22,21 @@ GoogleSignin.configure({
 // Helper function to save user profile to Firestore
 const saveUserProfile = async (user, additionalData = {}) => {
     try {
-        const userRef = firestore().collection('users').doc(user.uid);
+        const db = getFirestore();
+        const userRef = doc(db, 'users', user.uid);
         const userData = {
             uid: user.uid,
             email: user.email || null,
             displayName: user.displayName || additionalData.name || null,
             photoURL: user.photoURL || additionalData.imageURL || null,
             provider: user.providerData[0]?.providerId || 'unknown',
-            updatedAt: firestore.FieldValue.serverTimestamp(),
-            lastLoginAt: firestore.FieldValue.serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            lastLoginAt: serverTimestamp(),
             ...additionalData,
         };
 
         // Use set with merge to create or update
-        await userRef.set(userData, { merge: true });
+        await setDoc(userRef, userData, { merge: true });
         console.log('User profile saved successfully:', user.uid);
 
         return true;
@@ -65,11 +66,12 @@ export default function LoginScreen({ onLoginSuccess }) {
 
         setLoading(true);
         try {
+            const authInstance = getAuth();
             let userCredential;
             if (isLogin) {
-                userCredential = await auth().signInWithEmailAndPassword(email, password);
+                userCredential = await signInWithEmailAndPassword(authInstance, email, password);
             } else {
-                userCredential = await auth().createUserWithEmailAndPassword(email, password);
+                userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
             }
 
             // Save user profile to Firestore
@@ -111,10 +113,11 @@ export default function LoginScreen({ onLoginSuccess }) {
             }
 
             // Create a Google credential with the token
-            const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+            const googleCredential = GoogleAuthProvider.credential(idToken);
 
             // Sign-in the user with the credential
-            const userCredential = await auth().signInWithCredential(googleCredential);
+            const authInstance = getAuth();
+            const userCredential = await signInWithCredential(authInstance, googleCredential);
 
             // Save user profile to Firestore
             await saveUserProfile(userCredential.user, {
@@ -158,10 +161,11 @@ export default function LoginScreen({ onLoginSuccess }) {
             }
 
             // Create a Firebase credential with the AccessToken
-            const facebookCredential = auth.FacebookAuthProvider.credential(data.accessToken);
+            const facebookCredential = FacebookAuthProvider.credential(data.accessToken);
 
             // Sign-in the user with the credential
-            const userCredential = await auth().signInWithCredential(facebookCredential);
+            const authInstance = getAuth();
+            const userCredential = await signInWithCredential(authInstance, facebookCredential);
 
             // Get Facebook profile for additional data
             const fbProfile = await Profile.getCurrentProfile();

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import auth from '@react-native-firebase/auth';
+import { getAuth, signOut } from '@react-native-firebase/auth';
 
 export interface UserInfo {
     uid: string;
@@ -17,7 +17,8 @@ export const useAuth = () => {
     const [user, setUser] = useState<UserInfo | null>(null);
 
     useEffect(() => {
-        const currentUser = auth().currentUser;
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
         if (!currentUser) return;
 
         setUser({
@@ -30,7 +31,8 @@ export const useAuth = () => {
     }, []);
 
     const logout = async (): Promise<void> => {
-        await auth().signOut();
+        const auth = getAuth();
+        await signOut(auth);
     };
 
     return { user, logout };

@@ -1,5 +1,5 @@
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { getAuth } from '@react-native-firebase/auth';
+import { getFirestore, collection, doc, writeBatch, serverTimestamp, setDoc, addDoc, query, where, orderBy, limit, onSnapshot, getDocs } from '@react-native-firebase/firestore';
 import { TranslationRequest, TranslationResponse } from './RemoteTranslationService';
 
 export interface HistoryItem {
@@ -15,11 +15,13 @@ export interface HistoryItem {
 
 class HistoryService {
     private getCollection() {
-        return firestore().collection('translations');
+        const db = getFirestore();
+        return collection(db, 'translations');
     }
 
     async save(request: TranslationRequest, response: TranslationResponse, strategy: string): Promise<void> {
-        const user = auth().currentUser;
+        const auth = getAuth();
+        const user = auth.currentUser;
         if (!user) {
             console.log('HistoryService: No user logged in, skipping history save');
             return;
@@ -27,12 +29,14 @@ class HistoryService {
 
         try {
             const collectionRef = this.getCollection();
+            const db = getFirestore();
+
             if (response.results) {
-                const batch = firestore().batch();
+                const batch = writeBatch(db);
                 response.results.forEach(item => {
                     const sourceItem = request.items?.find(i => i.id === item.id);
                     if (sourceItem) {
-                        const docRef = collectionRef.doc();
+                        const docRef = doc(collectionRef);
                         batch.set(docRef, {
                             userId: user.uid,
                             sourceText: sourceItem.text,
@@ -47,7 +51,7 @@ class HistoryService {
                 await batch.commit();
                 console.log('HistoryService: Batch saved successfully');
             } else if (response.translatedText && request.text) {
-                await collectionRef.add({
+                await addDoc(collectionRef, {
                     userId: user.uid,
                     sourceText: request.text,
                     translatedText: response.translatedText,
@@ -69,9 +73,10 @@ class HistoryService {
     subscribeToHistory(
         strategy: 'WORD' | 'PARAGRAPH',
         onUpdate: (items: HistoryItem[]) => void,
-        limit: number = 20
+        limitCount: number = 20
     ): () => void {
-        const user = auth().currentUser;
+        const auth = getAuth();
+        const user = auth.currentUser;
         if (!user) {
             console.log('HistoryService: No user logged in');
             onUpdate([]);
@@ -81,45 +86,53 @@ class HistoryService {
         console.log(`HistoryService: Subscribing to ${strategy} history...`);
 
         try {
-            return this.getCollection()
-                .where('userId', '==', user.uid)
-                .where('strategy', '==', strategy)
-                .orderBy('timestamp', 'desc')
-                .limit(limit)
-                .onSnapshot(
-                    (snapshot) => {
-                        const items = snapshot.docs.map(doc => ({
-                            id: doc.id,
-                            ...doc.data(),
-                        } as HistoryItem));
-                        onUpdate(items);
-                    },
-                    (error) => {
-                        console.error('HistoryService: Subscription error', error);
-                    }
-                );
+            const q = query(
+                this.getCollection(),
+                where('userId', '==', user.uid),
+                where('strategy', '==', strategy),
+                orderBy('timestamp', 'desc'),
+                limit(limitCount)
+            );
+
+            return onSnapshot(
+                q,
+                (snapshot) => {
+                    const items = snapshot.docs.map((doc: any) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    } as HistoryItem));
+                    onUpdate(items);
+                },
+                (error) => {
+                    console.error('HistoryService: Subscription error', error);
+                }
+            );
         } catch (error) {
             console.error('HistoryService: Error setting up subscription', error);
             return () => { };
         }
     }
 
-    async getHistory(strategy: 'WORD' | 'PARAGRAPH', limit: number = 20): Promise<HistoryItem[]> {
-        const user = auth().currentUser;
+    async getHistory(strategy: 'WORD' | 'PARAGRAPH', limitCount: number = 20): Promise<HistoryItem[]> {
+        const auth = getAuth();
+        const user = auth.currentUser;
         if (!user) {
             console.log('HistoryService: No user logged in');
             return [];
         }
 
         try {
-            const snapshot = await this.getCollection()
-                .where('userId', '==', user.uid)
-                .where('strategy', '==', strategy)
-                .orderBy('timestamp', 'desc')
-                .limit(limit)
-                .get();
+            const q = query(
+                this.getCollection(),
+                where('userId', '==', user.uid),
+                where('strategy', '==', strategy),
+                orderBy('timestamp', 'desc'),
+                limit(limitCount)
+            );
 
-            return snapshot.docs.map(doc => ({
+            const snapshot = await getDocs(q);
+
+            return snapshot.docs.map((doc: any) => ({
                 id: doc.id,
                 ...doc.data(),
             } as HistoryItem));
