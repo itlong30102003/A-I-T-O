@@ -43,12 +43,10 @@ public class OverlayService extends Service {
     private static final int NOTIFICATION_ID = 2001;
     
     private WindowManager windowManager;
-    private View logoView;
     private View navbarView;
     private OverlayView translationView;
     private View languageMenuView;
     
-    private WindowManager.LayoutParams logoParams;
     private WindowManager.LayoutParams navbarParams;
     private WindowManager.LayoutParams translationParams;
     private WindowManager.LayoutParams menuParams;
@@ -59,8 +57,6 @@ public class OverlayService extends Service {
     private final String[] targetLangLabels = {"🇻🇳 Vietnamese", "🇺🇸 English"};
     
     // Dimensions
-    private int logoSizePx;
-    private int logoMarginPx;
     private int navbarHeightPx;
     private int navbarTopMarginPx;
     private int navbarHorizontalMarginPx;
@@ -74,19 +70,13 @@ public class OverlayService extends Service {
     private String targetLanguage = "VN";
     private boolean isAutoMode = true;
     private boolean isTranslating = false;
-    private Bitmap logoBitmap;
     
     // Static reference for communication
     public static OverlayService instance = null;
     public static String pendingBlocksJson = null;
 
     // Listeners
-    private OnLogoClickListener jsLogoListener;
     private OnNavbarEventListener jsNavbarListener;
-
-    public interface OnLogoClickListener {
-        void onClick();
-    }
     
     public interface OnNavbarEventListener {
         void onLanguageSelected(boolean isSource, String code);
@@ -95,10 +85,6 @@ public class OverlayService extends Service {
         void onCloseClick();
     }
 
-    public void setOnLogoClickListener(OnLogoClickListener listener) {
-        this.jsLogoListener = listener;
-    }
-    
     public void setOnNavbarEventListener(OnNavbarEventListener listener) {
         this.jsNavbarListener = listener;
     }
@@ -111,7 +97,6 @@ public class OverlayService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        instance = this;
         Log.d(TAG, "Overlay Service Created");
 
         createNotificationChannel();
@@ -123,57 +108,25 @@ public class OverlayService extends Service {
 
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         
-        // Get screen dimensions
-        DisplayMetrics dm = getResources().getDisplayMetrics();
-        float density = dm.density;
+        // Get screen dimensions from WindowManager for reliable values in Services
+        DisplayMetrics dm = new DisplayMetrics();
+        windowManager.getDefaultDisplay().getRealMetrics(dm);
+        float density = getResources().getDisplayMetrics().density; // Density usually fine
         screenWidth = dm.widthPixels;
         screenHeight = dm.heightPixels;
         
-        logoSizePx = (int) (28 * density);
-        logoMarginPx = (int) (16 * density);
-        navbarHeightPx = (int) (48 * density);
-        navbarTopMarginPx = (int) (60 * density);
+        // Failsafe in case dm.widthPixels is still 0
+        if (screenWidth <= 0) screenWidth = 1080;
+        if (screenHeight <= 0) screenHeight = 2400;
+        
+        navbarHeightPx = (int) (60 * density);
+        navbarTopMarginPx = (int) (16 * density);
         navbarHorizontalMarginPx = (int) (16 * density);
         
-        try {
-            logoBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ai_translate);
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to load logo", e);
-        }
-        
-        createLogoView();
         createNavbarView();
         createTranslationView();
-    }
-    
-    private void createLogoView() {
-        logoView = new View(this) {
-            @Override
-            protected void onDraw(Canvas canvas) {
-                super.onDraw(canvas);
-                drawLogo(canvas);
-            }
-        };
         
-        logoView.setOnClickListener(v -> {
-            if (jsLogoListener != null) jsLogoListener.onClick();
-        });
-
-        int layoutFlag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? 
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : 
-            WindowManager.LayoutParams.TYPE_PHONE;
-
-        logoParams = new WindowManager.LayoutParams(
-                logoSizePx,
-                logoSizePx,
-                layoutFlag,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                PixelFormat.TRANSLUCENT);
-
-        logoParams.gravity = Gravity.BOTTOM | Gravity.END;
-        logoParams.x = logoMarginPx;
-        logoParams.y = logoMarginPx + 100;
+        instance = this;
     }
     
     private void createNavbarView() {
@@ -413,33 +366,6 @@ public class OverlayService extends Service {
         });
     }
     
-    private void drawLogo(Canvas canvas) {
-        int size = canvas.getWidth();
-        float cornerRadius = size * 0.2f;
-        float padding = 2f;
-        RectF rect = new RectF(padding, padding, size - padding, size - padding);
-        
-        Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        shadowPaint.setColor(Color.argb(40, 0, 0, 0));
-        RectF shadowRect = new RectF(padding + 2, padding + 2, size - padding + 2, size - padding + 2);
-        canvas.drawRoundRect(shadowRect, cornerRadius, cornerRadius, shadowPaint);
-        
-        if (logoBitmap != null) {
-            Path clipPath = new Path();
-            clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW);
-            canvas.save();
-            canvas.clipPath(clipPath);
-            canvas.drawBitmap(logoBitmap, null, rect, null);
-            canvas.restore();
-            
-            Paint borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            borderPaint.setColor(Color.BLACK);
-            borderPaint.setStyle(Paint.Style.STROKE);
-            borderPaint.setStrokeWidth(1.5f);
-            canvas.drawRoundRect(rect, cornerRadius, cornerRadius, borderPaint);
-        }
-    }
-    
     private void drawNavbar(Canvas canvas, int width, int height, RectF closeBtn, RectF sourceLangBtn, RectF targetLangBtn, RectF autoModeBtn, RectF translateBtn) {
         float density = getResources().getDisplayMetrics().density;
         float cornerRadius = height / 2f;
@@ -502,53 +428,83 @@ public class OverlayService extends Service {
         canvas.drawText(tgtText, targetLangBtn.centerX() - tgtTextW / 2, textY, textPaint);
         x += tgtW;
         
-        // 4. Auto/Manual toggle
+        // 4. Auto/Manual toggle (or Word/Paragraph for Selection)
         autoModeBtn.set(x + gap, btnY, x + autoW - gap, btnY + btnHeight);
-        if (isAutoMode) {
-            btnPaint.setColor(Color.parseColor("#E8F5E9"));
-            canvas.drawRoundRect(autoModeBtn, btnRadius, btnRadius, btnPaint);
-            textPaint.setColor(Color.parseColor("#2E7D32"));
-            String autoText = "⚡Auto";
-            float autoTextW = textPaint.measureText(autoText);
-            canvas.drawText(autoText, autoModeBtn.centerX() - autoTextW / 2, textY, textPaint);
+        if ("SELECTION".equals(currentMode)) {
+            if (isAutoMode) {
+                // Word mode
+                btnPaint.setColor(Color.parseColor("#E8F5E9"));
+                canvas.drawRoundRect(autoModeBtn, btnRadius, btnRadius, btnPaint);
+                textPaint.setColor(Color.parseColor("#2E7D32"));
+                String wordText = "Từ";
+                float wordTextW = textPaint.measureText(wordText);
+                canvas.drawText(wordText, autoModeBtn.centerX() - wordTextW / 2, textY, textPaint);
+            } else {
+                // Paragraph mode
+                btnPaint.setColor(Color.parseColor("#FFF3E0"));
+                canvas.drawRoundRect(autoModeBtn, btnRadius, btnRadius, btnPaint);
+                textPaint.setColor(Color.parseColor("#E65100"));
+                String paragraphText = "Đoạn";
+                float paragraphTextW = textPaint.measureText(paragraphText);
+                canvas.drawText(paragraphText, autoModeBtn.centerX() - paragraphTextW / 2, textY, textPaint);
+            }
         } else {
-            btnPaint.setColor(Color.parseColor("#FFF3E0"));
-            canvas.drawRoundRect(autoModeBtn, btnRadius, btnRadius, btnPaint);
-            textPaint.setColor(Color.parseColor("#E65100"));
-            String manualText = "✋Manual";
-            float manualTextW = textPaint.measureText(manualText);
-            canvas.drawText(manualText, autoModeBtn.centerX() - manualTextW / 2, textY, textPaint);
+            if (isAutoMode) {
+                btnPaint.setColor(Color.parseColor("#E8F5E9"));
+                canvas.drawRoundRect(autoModeBtn, btnRadius, btnRadius, btnPaint);
+                textPaint.setColor(Color.parseColor("#2E7D32"));
+                String autoText = "⚡Auto";
+                float autoTextW = textPaint.measureText(autoText);
+                canvas.drawText(autoText, autoModeBtn.centerX() - autoTextW / 2, textY, textPaint);
+            } else {
+                btnPaint.setColor(Color.parseColor("#FFF3E0"));
+                canvas.drawRoundRect(autoModeBtn, btnRadius, btnRadius, btnPaint);
+                textPaint.setColor(Color.parseColor("#E65100"));
+                String manualText = "✋Manual";
+                float manualTextW = textPaint.measureText(manualText);
+                canvas.drawText(manualText, autoModeBtn.centerX() - manualTextW / 2, textY, textPaint);
+            }
         }
         x += autoW;
         
-        // 5. Translate / Start / Stop button
+        // 5. Translate / Start / Stop / Selection button
         translateBtn.set(x + gap, btnY, x + transW - gap, btnY + btnHeight);
-        if (isAutoMode) {
-            if (isTranslating) {
-                // Stop button (red)
-                btnPaint.setColor(Color.parseColor("#FFEBEE"));
-                canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
-                textPaint.setColor(Color.parseColor("#D32F2F"));
-                String stopText = "⏹ Stop";
-                float stopTextW = textPaint.measureText(stopText);
-                canvas.drawText(stopText, translateBtn.centerX() - stopTextW / 2, textY, textPaint);
-            } else {
-                // Start button (green)
-                btnPaint.setColor(Color.parseColor("#E8F5E9"));
-                canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
-                textPaint.setColor(Color.parseColor("#2E7D32"));
-                String startText = "▶ Start";
-                float startTextW = textPaint.measureText(startText);
-                canvas.drawText(startText, translateBtn.centerX() - startTextW / 2, textY, textPaint);
-            }
-        } else {
-            // Manual mode: Dịch button (blue)
-            btnPaint.setColor(Color.parseColor("#4285F4"));
+        if ("SELECTION".equals(currentMode)) {
+            // Selection mode: Selection trigger button
+            btnPaint.setColor(Color.parseColor("#FFF3E0"));
             canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
-            textPaint.setColor(Color.WHITE);
-            String transText = "Dịch";
-            float transTextW = textPaint.measureText(transText);
-            canvas.drawText(transText, translateBtn.centerX() - transTextW / 2, textY, textPaint);
+            textPaint.setColor(Color.parseColor("#E65100"));
+            String selectionText = "Selection";
+            float selectionTextW = textPaint.measureText(selectionText);
+            canvas.drawText(selectionText, translateBtn.centerX() - selectionTextW / 2, textY, textPaint);
+        } else {
+            if (isAutoMode) {
+                if (isTranslating) {
+                    // Stop button (red)
+                    btnPaint.setColor(Color.parseColor("#FFEBEE"));
+                    canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
+                    textPaint.setColor(Color.parseColor("#D32F2F"));
+                    String stopText = "⏹ Stop";
+                    float stopTextW = textPaint.measureText(stopText);
+                    canvas.drawText(stopText, translateBtn.centerX() - stopTextW / 2, textY, textPaint);
+                } else {
+                    // Start button (green)
+                    btnPaint.setColor(Color.parseColor("#E8F5E9"));
+                    canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
+                    textPaint.setColor(Color.parseColor("#2E7D32"));
+                    String startText = "▶ Start";
+                    float startTextW = textPaint.measureText(startText);
+                    canvas.drawText(startText, translateBtn.centerX() - startTextW / 2, textY, textPaint);
+                }
+            } else {
+                // Manual mode: Dịch button (blue)
+                btnPaint.setColor(Color.parseColor("#4285F4"));
+                canvas.drawRoundRect(translateBtn, btnRadius, btnRadius, btnPaint);
+                textPaint.setColor(Color.WHITE);
+                String transText = "Dịch";
+                float transTextW = textPaint.measureText(transText);
+                canvas.drawText(transText, translateBtn.centerX() - transTextW / 2, textY, textPaint);
+            }
         }
     }
     
@@ -561,58 +517,35 @@ public class OverlayService extends Service {
         }
     }
 
-    public void showLogo() {
-        new Handler(Looper.getMainLooper()).post(() -> {
-            try {
-                if (logoView.getParent() == null) {
-                    windowManager.addView(logoView, logoParams);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error showing logo", e);
-            }
-        });
-    }
-
-    public void hideLogo() {
-        new Handler(Looper.getMainLooper()).post(() -> {
-            try {
-                if (logoView.getParent() != null) {
-                    windowManager.removeView(logoView);
-                }
-                hideNavbar();
-            } catch (Exception e) {
-                Log.e(TAG, "Error hiding logo", e);
-            }
-        });
-    }
-    
     public void toggleNavbar() {
+        if (isNavbarVisible) hideNavbar();
+        else showNavbar();
+    }
+    
+    public void showNavbar() {
         new Handler(Looper.getMainLooper()).post(() -> {
-            if (isNavbarVisible) hideNavbar();
-            else showNavbar();
+            try {
+                if (navbarView.getParent() == null) {
+                    windowManager.addView(navbarView, navbarParams);
+                    isNavbarVisible = true;
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing navbar", e);
+            }
         });
     }
     
-    private void showNavbar() {
-        try {
-            if (navbarView.getParent() == null) {
-                windowManager.addView(navbarView, navbarParams);
-                isNavbarVisible = true;
+    public void hideNavbar() {
+        new Handler(Looper.getMainLooper()).post(() -> {
+            try {
+                if (navbarView.getParent() != null) {
+                    windowManager.removeView(navbarView);
+                    isNavbarVisible = false;
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error hiding navbar", e);
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error showing navbar", e);
-        }
-    }
-    
-    private void hideNavbar() {
-        try {
-            if (navbarView.getParent() != null) {
-                windowManager.removeView(navbarView);
-                isNavbarVisible = false;
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error hiding navbar", e);
-        }
+        });
     }
     
     public void setNavbarConfig(String mode, String sourceLang, String targetLang) {
@@ -681,7 +614,6 @@ public class OverlayService extends Service {
         super.onDestroy();
         instance = null;
         try {
-            if (logoView != null && logoView.getParent() != null) windowManager.removeView(logoView);
             if (navbarView != null && navbarView.getParent() != null) windowManager.removeView(navbarView);
             if (languageMenuView != null && languageMenuView.getParent() != null) windowManager.removeView(languageMenuView);
             if (translationView != null && translationView.getParent() != null) windowManager.removeView(translationView);

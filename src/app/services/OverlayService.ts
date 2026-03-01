@@ -72,19 +72,20 @@ class OverlayService {
     }
 
     /**
-     * Show the logo button at bottom-right corner.
+     * Start the overlay service immediately without awaiting permission check. 
+     * Useful when we know we have permission and don't want to yield JS thread.
      */
-    showLogo(): void {
+    startImmediate(data: string): void {
         if (!this.isSupported) return;
-        OverlayModule.showLogo();
+        OverlayModule.startOverlay(data);
     }
 
     /**
-     * Hide the logo and navbar.
+     * Set auto/manual mode state (used for Auto/Manual or Word/Paragraph)
      */
-    hideLogo(): void {
+    setAutoMode(enabled: boolean): void {
         if (!this.isSupported) return;
-        OverlayModule.hideLogo();
+        OverlayModule.setAutoMode(enabled);
     }
 
     /**
@@ -93,6 +94,22 @@ class OverlayService {
     toggleNavbar(): void {
         if (!this.isSupported) return;
         OverlayModule.toggleNavbar();
+    }
+
+    /**
+     * Show navbar visibility.
+     */
+    showNavbar(): void {
+        if (!this.isSupported) return;
+        OverlayModule.showNavbar();
+    }
+
+    /**
+     * Hide navbar visibility.
+     */
+    hideNavbar(): void {
+        if (!this.isSupported) return;
+        OverlayModule.hideNavbar();
     }
 
     /**
@@ -125,15 +142,6 @@ class OverlayService {
     hideTranslation(): void {
         if (!this.isSupported) return;
         OverlayModule.hideTranslation();
-    }
-
-    /**
-     * Subscribe to logo click events.
-     */
-    onLogoClick(callback: () => void): () => void {
-        if (!this.isSupported || !this.emitter) return () => { };
-        const subscription = this.emitter.addListener('onOverlayLogoClick', callback);
-        return () => subscription.remove();
     }
 
     /**

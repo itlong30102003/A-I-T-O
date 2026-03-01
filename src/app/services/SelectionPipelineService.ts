@@ -112,6 +112,17 @@ class SelectionPipelineService {
     }
 
     /**
+     * Update strictly the mode to sync UI without disrupting the config
+     */
+    setSelectionType(mode: SelectionMode): void {
+        this.mode = mode;
+        if (this.status === 'active') {
+            selectionModeService.setSelectionType(mode);
+        }
+        console.log(`[SELECTION] Selection type set to: ${mode}`);
+    }
+
+    /**
      * Switch between WORD and PARAGRAPH mode
      */
     switchMode(mode: SelectionMode): void {

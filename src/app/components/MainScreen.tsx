@@ -134,15 +134,6 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
 
     // Subscribe to overlay events
     useEffect(() => {
-        const unsubsLogo = overlayService.onLogoClick(() => {
-            console.log('MainScreen: Logo clicked, current mode:', translationMode);
-            if (translationMode === 'SELECTION') {
-                selectionPipelineService.toggleOverlay();
-            } else {
-                overlayService.toggleNavbar();
-            }
-        });
-
         const unsubsLanguageSelected = overlayService.onLanguageSelected((isSource, code) => {
             console.log('MainScreen: onLanguageSelected', isSource, code);
             const langList = isSource ? LANGUAGES.source : LANGUAGES.target;
@@ -157,31 +148,48 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         });
 
         const unsubsTranslate = overlayService.onTranslateClick(() => {
-            const isAuto = realtimePipelineService.getAutoMode();
-            if (isAuto) {
-                // Auto mode: toggle Start/Stop via React state
-                setIsRealtimeActive(prev => {
-                    const next = !prev;
-                    console.log(`MainScreen: ${next ? 'Start' : 'Stop'} auto translation`);
-                    overlayService.setTranslating(next);
-                    return next;
-                });
+            if (translationMode === 'SELECTION') {
+                console.log('MainScreen: Selection trigger clicked');
+                selectionPipelineService.toggleOverlay();
             } else {
-                // Manual mode: trigger one-shot translate
-                console.log('MainScreen: Manual translate triggered');
-                realtimePipelineService.triggerManualTranslate();
+                const isAuto = realtimePipelineService.getAutoMode();
+                if (isAuto) {
+                    // Auto mode: toggle Start/Stop via React state
+                    setIsRealtimeActive(prev => {
+                        const next = !prev;
+                        console.log(`MainScreen: ${next ? 'Start' : 'Stop'} auto translation`);
+                        overlayService.setTranslating(next);
+                        return next;
+                    });
+                } else {
+                    // Manual mode: trigger one-shot translate
+                    console.log('MainScreen: Manual translate triggered');
+                    realtimePipelineService.triggerManualTranslate();
+                }
             }
         });
 
         const unsubsAutoMode = overlayService.onAutoModeClick(() => {
-            const newMode = !realtimePipelineService.getAutoMode();
-            console.log('MainScreen: AutoMode toggled to', newMode ? 'AUTO' : 'MANUAL');
-            realtimePipelineService.setAutoMode(newMode);
-            // Reset overlay state — keep pipeline running so frames are still received
-            setIsRealtimeActive(false);
-            realtimePipelineService.setOverlayEnabled(false);
-            overlayService.setTranslating(false);
-            overlayService.hideTranslation();
+            if (translationMode === 'SELECTION') {
+                // Toggle between Word and Paragraph in Selection mode
+                setSelectionType(prev => {
+                    const newType = prev === 'WORD' ? 'PARAGRAPH' : 'WORD';
+                    console.log('MainScreen: Selection Type toggled to', newType);
+                    selectionPipelineService.setSelectionType(newType);
+                    // Sync native UI (true = WORD, false = PARAGRAPH)
+                    overlayService.setAutoMode(newType === 'WORD');
+                    return newType;
+                });
+            } else {
+                const newMode = !realtimePipelineService.getAutoMode();
+                console.log('MainScreen: AutoMode toggled to', newMode ? 'AUTO' : 'MANUAL');
+                realtimePipelineService.setAutoMode(newMode);
+                // Reset overlay state — keep pipeline running so frames are still received
+                setIsRealtimeActive(false);
+                realtimePipelineService.setOverlayEnabled(false);
+                overlayService.setTranslating(false);
+                overlayService.hideTranslation();
+            }
         });
 
         const unsubsClose = overlayService.onCloseClick(() => {
@@ -195,7 +203,6 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         });
 
         return () => {
-            unsubsLogo();
             unsubsLanguageSelected();
             unsubsTranslate();
             unsubsAutoMode();
@@ -203,14 +210,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         };
     }, [translationMode, handleStopCapture]);
 
-    // Auto-start Selection Mode
-    useEffect(() => {
-        if (translationMode !== 'SELECTION') return;
-        if (captureState.isCapturing || captureState.permissionGranted) return;
-
-        console.log('MainScreen: Auto-starting Selection Mode...');
-        handleSelectEntireScreen();
-    }, [translationMode, captureState.isCapturing, captureState.permissionGranted, handleSelectEntireScreen]);
+    // No auto-start Selection Mode -> User must press start in CaptureControls
 
 
     // Preload ML Kit models
@@ -246,19 +246,15 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
             console.log(`MainScreen: [PIPELINE-EFFECT] Starting pipelines (Mode: ${translationMode})`);
             const script = ['zh', 'ja', 'ko'].includes(sourceLang.code) ? 'chinese' : 'latin';
 
-            console.log('MainScreen: [PIPELINE-EFFECT] Calling overlayService.start...');
-            await overlayService.start('[]');
-            console.log('MainScreen: [PIPELINE-EFFECT] overlayService.start done');
+            console.log('MainScreen: [PIPELINE-EFFECT] Calling overlayService.startImmediate...');
+            overlayService.startImmediate('[]');
+            console.log('MainScreen: [PIPELINE-EFFECT] overlayService.startImmediate done');
 
             if (translationMode === 'REALTIME') {
                 console.log('MainScreen: [PIPELINE-EFFECT] REALTIME branch — setting up navbar + starting pipeline');
-                // Show navbar immediately
                 overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
-                overlayService.showLogo();
-                overlayService.toggleNavbar();
+                overlayService.showNavbar();
 
-                // Auto-start pipeline (pre-warm: OCR → translate → cache)
-                // Overlay starts disabled — user presses Start to show
                 realtimePipelineService.start({
                     script,
                     sourceLanguage: sourceLang.code,
@@ -268,8 +264,10 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                 overlayService.setTranslating(false);
                 console.log('MainScreen: [PIPELINE-EFFECT] REALTIME pipeline started, overlay disabled, waiting for Start');
             } else if (translationMode === 'SELECTION') {
-                overlayService.showLogo();
                 overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
+                // Set initial AutoMode true for WORD, false for PARAGRAPH
+                overlayService.setAutoMode(selectionType === 'WORD');
+                overlayService.showNavbar();
                 selectionPipelineService.start(selectionType, {
                     sourceLanguage: sourceLang.code,
                     targetLanguage: targetLang.code,
@@ -311,7 +309,12 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
     // Sync navbar config
     useEffect(() => {
         overlayService.setNavbarConfig(translationMode, sourceLang.label, targetLang.label);
-    }, [translationMode, sourceLang.label, targetLang.label]);
+        if (translationMode === 'SELECTION') {
+            overlayService.setAutoMode(selectionType === 'WORD');
+        } else {
+            overlayService.setAutoMode(realtimePipelineService.getAutoMode());
+        }
+    }, [translationMode, sourceLang.label, targetLang.label, selectionType]);
 
     // Destructure state
     const { isCapturing, permissionGranted, androidInfo } = captureState;
@@ -381,7 +384,7 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
                     colors={colors}
                 />
 
-                {translationMode === 'REALTIME' && (
+                {(translationMode === 'REALTIME' || translationMode === 'SELECTION') && (
                     <CaptureControls
                         isCapturing={isCapturing}
                         permissionGranted={permissionGranted}

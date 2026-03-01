@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.util.Log;
 
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Promise;
@@ -73,9 +74,11 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
             public void run() {
                 if (OverlayService.instance != null) {
                     task.run();
-                } else if (attempts < 20) {
+                } else if (attempts < 100) {
                     attempts++;
                     handler.postDelayed(this, 100);
+                } else {
+                    Log.e("OverlayModule", "runWhenServiceReady timed out after 100 attempts");
                 }
             }
         });
@@ -102,8 +105,6 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     
     private void setupServiceListeners() {
         if (OverlayService.instance == null) return;
-        
-        OverlayService.instance.setOnLogoClickListener(() -> emitEvent("onOverlayLogoClick", null));
         
         OverlayService.instance.setOnNavbarEventListener(new OverlayService.OnNavbarEventListener() {
             @Override
@@ -142,18 +143,23 @@ public class OverlayModule extends ReactContextBaseJavaModule implements Activit
     }
 
     @ReactMethod
-    public void showLogo() {
-        runWhenServiceReady(() -> OverlayService.instance.showLogo());
-    }
-
-    @ReactMethod
-    public void hideLogo() {
-        runWhenServiceReady(() -> OverlayService.instance.hideLogo());
+    public void setAutoMode(boolean auto) {
+        runWhenServiceReady(() -> OverlayService.instance.setAutoMode(auto));
     }
     
     @ReactMethod
     public void toggleNavbar() {
         runWhenServiceReady(() -> OverlayService.instance.toggleNavbar());
+    }
+
+    @ReactMethod
+    public void showNavbar() {
+        runWhenServiceReady(() -> OverlayService.instance.showNavbar());
+    }
+    
+    @ReactMethod
+    public void hideNavbar() {
+        runWhenServiceReady(() -> OverlayService.instance.hideNavbar());
     }
     
     @ReactMethod
