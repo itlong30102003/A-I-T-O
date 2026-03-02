@@ -19,7 +19,7 @@ const LogoScreen = ({ onFinish }) => {
 
     return (
         <View style={styles.logoScreen}>
-            <Image source={require("../assets/LogoAITO.png")} style={styles.logo} resizeMode="contain" />
+            <Image source={require("../assets/AppLogo.png")} style={styles.logo} resizeMode="contain" />
         </View>
     );
 };
@@ -93,7 +93,7 @@ const ContentScreen = ({ data, index, total, onNext, onBack, onComplete }) => {
 // Data
 const DATA = [
     {
-        icon: require("../assets/LogoAITO.png"),
+        icon: require("../assets/AppLogo.png"),
         title: "Chào mừng đến với AITO",
         desc: "Ứng dụng dịch thuật AI thông minh với công nghệ overlay hiện đại.",
     },
