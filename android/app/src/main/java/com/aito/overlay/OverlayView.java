@@ -12,6 +12,7 @@ import android.graphics.RectF;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -80,10 +81,24 @@ public class OverlayView extends View {
     public static class TextBlock {
         String text;
         Rect rect;
+        int fontSize;    // Estimated original font size (0 = auto)
+        int bgColor;     // Background color (ARGB)
+        int textColor;   // Calculated text color for readability
 
-        public TextBlock(String text, Rect rect) {
+        public TextBlock(String text, Rect rect, int fontSize, int bgColor) {
             this.text = text;
             this.rect = rect;
+            this.fontSize = fontSize;
+            this.bgColor = bgColor;
+            this.textColor = calculateTextColor(bgColor);
+        }
+
+        private static int calculateTextColor(int bgColor) {
+            int r = Color.red(bgColor);
+            int g = Color.green(bgColor);
+            int b = Color.blue(bgColor);
+            double luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
+            return luminance > 0.5 ? Color.BLACK : Color.WHITE;
         }
     }
 
@@ -309,6 +324,25 @@ public class OverlayView extends View {
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject obj = jsonArray.getJSONObject(i);
                 String text = obj.optString("text", "");
+                int fontSize = obj.optInt("fontSize", 0);
+                
+                // Parse bgColor hex → ARGB with alpha 230
+                String bgHex = obj.optString("bgColor", "");
+                int bgColor;
+                if (!bgHex.isEmpty()) {
+                    try {
+                        int parsed = Color.parseColor(bgHex);
+                        bgColor = Color.argb(230, Color.red(parsed), Color.green(parsed), Color.blue(parsed));
+                    } catch (Exception ignored) {
+                        bgColor = "light".equals(overlayStyleMode)
+                            ? Color.argb(230, 255, 255, 255)
+                            : Color.argb(200, 0, 0, 0);
+                    }
+                } else {
+                    bgColor = "light".equals(overlayStyleMode)
+                        ? Color.argb(230, 255, 255, 255)
+                        : Color.argb(200, 0, 0, 0);
+                }
                 
                 JSONObject boundingBox = obj.optJSONObject("boundingBox");
                 
@@ -321,7 +355,10 @@ public class OverlayView extends View {
                     int adjustedY = y - statusBarHeight;
                     
                     if (w > 0 && h > 0 && adjustedY + h > 0) {
-                        textBlocks.add(new TextBlock(text, new Rect(x, adjustedY, x + w, adjustedY + h)));
+                        // Expand rect slightly to fully cover original text
+                        int expand = 4;
+                        textBlocks.add(new TextBlock(text, new Rect(x - expand, adjustedY - expand, x + w + expand, adjustedY + h + expand), fontSize, bgColor));
+                        Log.d(TAG, "Block: fontSize=" + fontSize + " rect=" + w + "x" + h + " text=" + text.substring(0, Math.min(20, text.length())));
                     }
                 }
             }
@@ -365,8 +402,10 @@ public class OverlayView extends View {
         // Enable layer for shadow
         setLayerType(LAYER_TYPE_SOFTWARE, null);
 
-        // Draw text blocks
+        // Draw text blocks with per-block style and 3-step overflow
         for (TextBlock block : textBlocks) {
+            // Per-block background color
+            paintBackground.setColor(block.bgColor);
             canvas.drawRect(block.rect, paintBackground);
             if (block.text == null || block.text.isEmpty()) continue;
 
@@ -379,8 +418,18 @@ public class OverlayView extends View {
             int availableHeight = boxHeight - (padding * 2);
             if (availableWidth <= 0 || availableHeight <= 0) continue;
 
-            float optimalSize = findOptimalTextSize(block.text, availableWidth, availableHeight, 12f * textSizeScale, 100f * textSizeScale);
-            textPaint.setTextSize(optimalSize);
+            // Per-block text color
+            textPaint.setColor(block.textColor);
+
+            // Step 1: Try original fontSize first (no shrinking)
+            float targetSize;
+            if (block.fontSize > 0) {
+                targetSize = block.fontSize * 1.1f * textSizeScale;
+                Log.d(TAG, "FontSize: using direct fontSize=" + block.fontSize + " targetSize=" + targetSize);
+            } else {
+                targetSize = findOptimalTextSize(block.text, availableWidth, availableHeight, 12f * textSizeScale, 100f * textSizeScale);
+            }
+            textPaint.setTextSize(targetSize);
 
             StaticLayout staticLayout = StaticLayout.Builder
                 .obtain(block.text, 0, block.text.length(), textPaint, availableWidth)
@@ -388,6 +437,61 @@ public class OverlayView extends View {
                 .setLineSpacing(0f, 1f)
                 .setIncludePad(false)
                 .build();
+
+            // Step 2: Adaptive fit — shrink font (-5%) AND expand bbox (+10%) together
+            int drawHeight = availableHeight;
+            if (staticLayout.getHeight() > availableHeight && block.fontSize > 0) {
+                float currentSize = targetSize;
+                float minSize = targetSize * 0.80f;       // Don't shrink below 80%
+                int maxHeight = boxHeight * 2;             // Don't expand beyond 2×
+                int currentBoxHeight = boxHeight;
+
+                while (staticLayout.getHeight() > (currentBoxHeight - padding * 2)) {
+                    // Shrink font by 5%
+                    float newSize = currentSize * 0.95f;
+                    // Expand bbox by 10%
+                    int newBoxHeight = currentBoxHeight + (int)(boxHeight * 0.1f);
+
+                    // Check limits
+                    boolean canShrink = newSize >= minSize;
+                    boolean canExpand = newBoxHeight <= maxHeight;
+
+                    if (!canShrink && !canExpand) break; // Both at limit
+
+                    if (canShrink) currentSize = newSize;
+                    if (canExpand) currentBoxHeight = newBoxHeight;
+
+                    textPaint.setTextSize(currentSize);
+                    staticLayout = StaticLayout.Builder
+                        .obtain(block.text, 0, block.text.length(), textPaint, availableWidth)
+                        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                        .setLineSpacing(0f, 1f)
+                        .setIncludePad(false)
+                        .build();
+                }
+
+                block.rect.bottom = block.rect.top + currentBoxHeight;
+                drawHeight = currentBoxHeight - (padding * 2);
+                float shrinkRatio = currentSize / targetSize * 100f;
+                int expandRatio = currentBoxHeight * 100 / boxHeight;
+                Log.d(TAG, "Adaptive: font=" + (int)shrinkRatio + "% bbox=" + expandRatio + "%");
+
+                // Redraw expanded background
+                canvas.drawRect(block.rect, paintBackground);
+
+                // Step 3: If still overflows, truncate
+                if (staticLayout.getHeight() > drawHeight) {
+                    int maxLines = Math.max(1, drawHeight / (int)(currentSize * 1.2f));
+                    staticLayout = StaticLayout.Builder
+                        .obtain(block.text, 0, block.text.length(), textPaint, availableWidth)
+                        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                        .setLineSpacing(0f, 1f)
+                        .setIncludePad(false)
+                        .setMaxLines(maxLines)
+                        .setEllipsize(TextUtils.TruncateAt.END)
+                        .build();
+                }
+            }
 
             canvas.save();
             canvas.translate(block.rect.left + padding, block.rect.top + padding);

@@ -2,6 +2,7 @@ package com.aito.textdetection
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.Rect
 import com.facebook.react.bridge.*
 import com.google.mlkit.vision.common.InputImage
@@ -93,6 +94,22 @@ class TextDetectionModule(reactContext: ReactApplicationContext) : ReactContextB
                         blockMap.putMap("boundingBox", createRectMap(boundingBox))
                     }
 
+                    // Estimate fontSize: median element height × 0.98
+                    val elementHeights = mutableListOf<Int>()
+                    for (line in block.lines) {
+                        for (element in line.elements) {
+                            element.boundingBox?.let { elementHeights.add(it.height()) }
+                        }
+                    }
+                    elementHeights.sort()
+                    val medianHeight = if (elementHeights.isNotEmpty())
+                        elementHeights[elementHeights.size / 2] else 14
+                    blockMap.putInt("fontSize", medianHeight)
+
+                    // Extract dominant background color from bitmap edges
+                    val bgColor = boundingBox?.let { extractDominantColor(bitmap, it) }
+                    blockMap.putString("bgColor", String.format("#%06X", 0xFFFFFF and (bgColor ?: 0)))
+
                     val linesArray = Arguments.createArray()
                     for (line in block.lines) {
                         val lineMap = Arguments.createMap()
@@ -137,5 +154,43 @@ class TextDetectionModule(reactContext: ReactApplicationContext) : ReactContextB
         map.putInt("width", rect.width())
         map.putInt("height", rect.height())
         return map
+    }
+
+    /**
+     * Extract dominant background color by sampling pixels along the edges of the bounding box.
+     * Edges are sampled to avoid picking up text pixel colors.
+     */
+    private fun extractDominantColor(bitmap: Bitmap, rect: Rect): Int {
+        val safeRect = Rect(
+            rect.left.coerceIn(0, bitmap.width - 1),
+            rect.top.coerceIn(0, bitmap.height - 1),
+            rect.right.coerceIn(1, bitmap.width),
+            rect.bottom.coerceIn(1, bitmap.height)
+        )
+        val colorCounts = mutableMapOf<Int, Int>()
+        // Sample top and bottom rows
+        for (x in safeRect.left until safeRect.right step 3) {
+            addColor(colorCounts, bitmap.getPixel(x, safeRect.top))
+            addColor(colorCounts, bitmap.getPixel(x, (safeRect.bottom - 1).coerceAtLeast(safeRect.top)))
+        }
+        // Sample left and right columns
+        for (y in safeRect.top until safeRect.bottom step 3) {
+            addColor(colorCounts, bitmap.getPixel(safeRect.left, y))
+            addColor(colorCounts, bitmap.getPixel((safeRect.right - 1).coerceAtLeast(safeRect.left), y))
+        }
+        return colorCounts.maxByOrNull { it.value }?.key ?: Color.BLACK
+    }
+
+    /**
+     * Quantize color (drop lower 4 bits per channel) and add to frequency map.
+     */
+    private fun addColor(map: MutableMap<Int, Int>, color: Int) {
+        val q = Color.argb(
+            255,
+            Color.red(color) and 0xF0,
+            Color.green(color) and 0xF0,
+            Color.blue(color) and 0xF0
+        )
+        map[q] = (map[q] ?: 0) + 1
     }
 }

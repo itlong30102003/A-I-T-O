@@ -26,6 +26,8 @@ export interface TextBlock {
   text: string;
   boundingBox: BoundingBox;
   lines: TextLine[];
+  fontSize?: number;   // Estimated original font size (px)
+  bgColor?: string;    // Dominant background color (hex "#RRGGBB")
 }
 
 export interface DetectionResult {
