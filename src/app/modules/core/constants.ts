@@ -20,7 +20,7 @@ export const MODES = [
     { id: 'REALTIME', label: '⚡ Realtime', desc: 'Dịch trực tiếp (ML Kit)' },
     { id: 'SELECTION', label: '🖐️ Selection', desc: 'Chọn vùng dịch (ML Kit)' },
     { id: 'CAMERA', label: '📷 Camera', desc: 'Dịch qua Camera AR' },
-    { id: 'RESOURCE', label: '📊 Resource', desc: 'Theo dõi tài nguyên hệ thống' },
+    { id: 'RESOURCE', label: '📄 Document', desc: 'Dịch Word, PDF, Ảnh...' },
 ];
 
 export type TranslationMode = 'REALTIME' | 'SELECTION' | 'CAMERA' | 'RESOURCE';

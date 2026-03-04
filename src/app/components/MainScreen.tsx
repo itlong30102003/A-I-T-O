@@ -16,6 +16,7 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
+    Alert,
 } from 'react-native';
 
 // Core module imports
@@ -104,13 +105,20 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
 
     // Handle mode change - useCallback for optimization
     const handleModeChange = useCallback((modeId: TranslationMode) => {
+        if (modeId === 'RESOURCE') {
+            Alert.alert(
+                'Tính năng sắp ra mắt',
+                'Tính năng dịch tài liệu (PDF, Word, Ảnh) đang được phát triển và sẽ cập nhật trong phiên bản tới.'
+            );
+            return;
+        }
         if (modeId === 'CAMERA') {
             setShowCameraScreen(true);
         } else {
             setTranslationMode(modeId);
             setShowCameraScreen(false);
         }
-    }, []);
+    }, [t]);
 
     // Handle logout - useCallback
     const handleLogout = useCallback(async () => {
