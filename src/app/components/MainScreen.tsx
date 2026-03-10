@@ -55,15 +55,11 @@ import { mlKitTranslationService } from '../services/MLKitTranslationService';
 import LiveTranslationScreen from '../screens/LiveTranslationScreen';
 import ResourceScreen from '../screens/ResourceScreen';
 
-interface MainScreenProps {
-    onLogout?: () => void;
-}
-
 /**
  * MainScreen Coordinator Component
  * Uses React.memo for optimization
  */
-const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
+const MainScreen = memo(() => {
     // Hooks
     const { user, logout } = useAuth();
     const settings = useSettings();
@@ -125,11 +121,11 @@ const MainScreen: React.FC<MainScreenProps> = memo(({ onLogout }) => {
         try {
             screenCaptureService.cleanup();
             await logout();
-            if (onLogout) onLogout();
+            // onAuthStateChanged in App.tsx will handle navigation
         } catch (error) {
             console.error(t('main.error'), ':', t('main.logoutError'), error);
         }
-    }, [logout, onLogout, t]);
+    }, [logout, t]);
 
     // Handle language selection
     const handleLanguageSelect = useCallback((lang: LanguageItem) => {

@@ -47,7 +47,7 @@ const saveUserProfile = async (user, additionalData = {}) => {
     }
 };
 
-export default function LoginScreen({ onLoginSuccess }) {
+export default function LoginScreen() {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -76,8 +76,6 @@ export default function LoginScreen({ onLoginSuccess }) {
 
             // Save user profile to Firestore
             await saveUserProfile(userCredential.user);
-
-            if (onLoginSuccess) onLoginSuccess();
         } catch (error) {
             console.error('Email auth error:', error);
             let message = 'Đã có lỗi xảy ra';
@@ -123,8 +121,6 @@ export default function LoginScreen({ onLoginSuccess }) {
             await saveUserProfile(userCredential.user, {
                 googleId: signInResult.data?.user?.id || null,
             });
-
-            if (onLoginSuccess) onLoginSuccess();
         } catch (error) {
             console.error('Google login error:', error);
             let message = 'Đã có lỗi xảy ra khi đăng nhập Google';
@@ -178,8 +174,6 @@ export default function LoginScreen({ onLoginSuccess }) {
                 lastName: fbProfile?.lastName || null,
                 imageURL: fbProfile?.imageURL || null,
             });
-
-            if (onLoginSuccess) onLoginSuccess();
         } catch (error) {
             console.error('Facebook login error:', error);
             console.error('Lỗi đăng nhập Facebook:', error.message || 'Đã có lỗi xảy ra');

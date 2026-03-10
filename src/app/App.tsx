@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Settings } from 'react-native-fbsdk-next';
+import { getAuth, onAuthStateChanged } from '@react-native-firebase/auth';
 import SplashScreen from './components/SplashScreen';
 import LoginScreen from './components/ui/LoginScreen';
 import MainScreen from './components/MainScreen';
@@ -18,27 +19,41 @@ if (__DEV__ && Platform.OS === 'android') {
 }
 
 export default function App() {
-  // App states: 'splash' | 'login' | 'main'
-  const [screen, setScreen] = useState('splash');
+  // Splash screen state — controlled by animation timer
+  const [showSplash, setShowSplash] = useState(true);
 
-  const handleSplashComplete = () => {
-    setScreen('login');
-  };
+  // Firebase auth state — single source of truth
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
-  const handleLoginSuccess = () => {
-    setScreen('main');
-  };
+  // Listen to Firebase auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(getAuth(), (firebaseUser) => {
+      setUser(firebaseUser);
+      if (initializing) setInitializing(false);
+    });
+    return unsubscribe;
+  }, [initializing]);
 
-  const handleLogout = () => {
-    setScreen('login');
-  };
+  // Show splash screen first (animation)
+  if (showSplash) {
+    return (
+      <SettingsProvider>
+        <SafeAreaProvider>
+          <SplashScreen onComplete={() => setShowSplash(false)} />
+        </SafeAreaProvider>
+      </SettingsProvider>
+    );
+  }
 
+  // Wait for Firebase to determine auth state
+  if (initializing) return null;
+
+  // Firebase decides: logged in → MainScreen, not logged in → LoginScreen
   return (
     <SettingsProvider>
       <SafeAreaProvider>
-        {screen === 'splash' && <SplashScreen onComplete={handleSplashComplete} />}
-        {screen === 'login' && <LoginScreen onLoginSuccess={handleLoginSuccess} />}
-        {screen === 'main' && <MainScreen onLogout={handleLogout} />}
+        {user ? <MainScreen /> : <LoginScreen />}
       </SafeAreaProvider>
     </SettingsProvider>
   );
